@@ -3,8 +3,10 @@ using System.Text.Json;
 using Consul;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Options;
 using MyShared;
+using Yarp.ReverseProxy.Configuration;
+using DestinationConfig = Yarp.ReverseProxy.Configuration.DestinationConfig;
+using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -70,9 +72,45 @@ public static class ConsulServiceDiscoveryServiceCollectionExtensions
             Port = serviceDiscoveryOptions.ServicePort,
 
             Checks = checks,
-            Tags = serviceDiscoveryOptions.Tags
+
+            Tags = serviceDiscoveryOptions.Tags,
+            //Tags = GetRouteAndClusterTags(serviceDiscoveryOptions).ToArray(),
+            Meta = GetRouteAndClusterTags(serviceDiscoveryOptions),
         };
     }
+
+    private static Dictionary<string, string> GetRouteAndClusterTags(ServiceDiscoveryOptions serviceDiscoveryOptions)
+    {
+        var metadata = new Dictionary<string, string>();
+
+        // Generate default route and cluster configurations
+        var defaultRoute = new RouteConfig
+        {
+            RouteId = "defaulttttt_1",
+            ClusterId = "CLUSTERRRRR_IDDD_1",
+            //PathPrefix ="/api",
+            Match = new RouteMatch { Path = "/api" }, // Example route pattern
+            Metadata = new Dictionary<string, string>() // You can add metadata if needed
+        };
+
+        var defaultCluster = new ClusterConfig
+        {
+            ClusterId = "CLUSTERRRRR_IDDD_1",
+
+            Destinations = new Dictionary<string, DestinationConfig>()
+                                {
+                                    { "serv_1", new DestinationConfig { Address = serviceDiscoveryOptions.HealthChecks.HttpsUrl } }
+                                },
+            Metadata = new Dictionary<string, string>() // You can add metadata if needed
+        };
+
+        // Convert default route and cluster to JSON strings and include them as metadata
+        metadata["Routes"] = Newtonsoft.Json.JsonConvert.SerializeObject(new List<RouteConfig> { defaultRoute });
+        metadata["Clusters"] = Newtonsoft.Json.JsonConvert.SerializeObject(new List<ClusterConfig> { defaultCluster });
+
+        return metadata;
+    }
+
 
     private static List<AgentServiceCheck> PrepareServiceChecks(ServiceDiscoveryOptions serviceDiscoveryOptions)
     {

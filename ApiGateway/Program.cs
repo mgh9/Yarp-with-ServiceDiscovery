@@ -1,3 +1,4 @@
+using ApiGateway.Extensions;
 using Consul;
 using Yarp.ReverseProxy.Configuration;
 
@@ -7,12 +8,31 @@ internal class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
+        builder.Services.AddHttpClient();
+
+        // Configure Consul client (adjust as needed)
+        builder.Services.AddSingleton<IConsulClient>(c => new ConsulClient(config =>
+        {
+            config.Address = new Uri("http://localhost:8500");
+        }));
+
+        builder.Services.AddSingleton<IProxyConfigProvider, MyCustomProxyConfigProvider>()
+                         .AddReverseProxy();
+        //.LoadFromConfig(_configuration.GetSection("ReverseProxy"));
+
+
+
+
+
+
+
+
         // Add services to the container.
         // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
 
-        builder.Services.AddReverseProxy().LoadFromMemory(GetRoutes(), await GetClustersAsync());
+        ////////////builder.Services.AddReverseProxy().LoadFromMemory(GetRoutes(), await GetClustersAsync());
 
         var app = builder.Build();
 
@@ -23,7 +43,7 @@ internal class Program
             app.UseSwaggerUI();
         }
 
-        app.UseHttpsRedirection();
+        //app.UseHttpsRedirection();
 
         var summaries = new[]
         {
@@ -45,8 +65,21 @@ internal class Program
         .WithName("GetWeatherForecast")
         .WithOpenApi();
 
+        // Use custom provider to load clusters and routes
+        app.UseRouting();
+        app.UseEndpoints(endpoints =>
+        {
+            endpoints.MapReverseProxy();
+        });
+
         app.MapReverseProxy();
+
         app.Run();
+
+
+
+
+
 
 
         async Task<IReadOnlyList<ClusterConfig>> GetClustersAsync()
@@ -62,7 +95,7 @@ internal class Program
                         {
                             "api1", new Yarp.ReverseProxy.Configuration.DestinationConfig()
                             {
-                                Address = await GetUrlFromServiceDiscoveryByName("API 1") 
+                                Address = await GetUrlFromServiceDiscoveryByName("API 1")
                             }
                         },
                     }
