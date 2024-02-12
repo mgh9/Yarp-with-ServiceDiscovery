@@ -1,4 +1,5 @@
-﻿using Consul;
+﻿using System.Text.Json;
+using Consul;
 using Yarp.ReverseProxy.Configuration;
 using DestinationConfig = Yarp.ReverseProxy.Configuration.DestinationConfig;
 using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
@@ -6,105 +7,162 @@ using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
 namespace ApiGateway.Extensions
 {
     public class MyCustomProxyConfigProvider : IProxyConfigProvider
-    {
-        private MyInMemoryConfig _config;
+    { 
+        private volatile MyInMemoryConfig _config;
         private readonly IConsulClient _consulClient;
-        private readonly CancellationTokenSource _stoppingToken = new();
+        //private readonly CancellationTokenSource _stoppingToken = new();
+
 
         public MyCustomProxyConfigProvider(IConsulClient consulClient)
         {
             _consulClient = consulClient;
 
-            //// Load a basic configuration
-            //// Should be based on your application needs.
-            //var routeConfig = new RouteConfig
-            //{
-            //    RouteId = "route1",
-            //    ClusterId = "cluster1",
-            //    Match = new RouteMatch
-            //    {
-            //        Path = "/api/service1/{**catch-all}"
-            //    }
-            //};
+            var routesAndClusters = GetRoutesAndClustersAsync().Result;
+            _config = new MyInMemoryConfig(routesAndClusters.Item1, routesAndClusters.Item2, Guid.NewGuid().ToString());
 
-            //var routeConfigs = new[] { routeConfig };
-
-            //var clusterConfigs = new[]
-            //{
-            //    new ClusterConfig
-            //    {
-            //        ClusterId = "cluster1",
-            //        LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
-            //        Destinations = new Dictionary<string, DestinationConfig>
-            //        {
-            //            { "destination1", new DestinationConfig { Address = "https://localhost:5001/" } },
-            //            { "destination2", new DestinationConfig { Address = "https://localhost:5002/" } }
-            //        }
-            //    }
-            //};
-
-            //_config = new MyInMemoryConfig(routeConfigs, clusterConfigs);
-
-            PeriodicUpdateAsync(_stoppingToken.Token);
+            Update(routesAndClusters.Item1, routesAndClusters.Item2);
         }
+
+        /////// <summary>
+        /////// Creates a new instance.
+        /////// </summary>
+        ////public MyCustomProxyConfigProvider(IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters)
+        ////    : this(routes, clusters, Guid.NewGuid().ToString())
+        ////{ }
+
+        /////// <summary>
+        /////// Creates a new instance, specifying a revision id of the configuration.
+        /////// </summary>
+        ////public MyCustomProxyConfigProvider(IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters, string revisionId)
+        ////{
+        ////    _config = new MyInMemoryConfig(routes, clusters, revisionId);
+        ////}
+
+        //public MyCustomProxyConfigProvider(IConsulClient consulClient)
+        //{
+        //    _consulClient = consulClient;
+
+        //    //// Load a basic configuration
+        //    //// Should be based on your application needs.
+        //    //var routeConfig = new RouteConfig
+        //    //{
+        //    //    RouteId = "route1",
+        //    //    ClusterId = "cluster1",
+        //    //    Match = new RouteMatch
+        //    //    {
+        //    //        Path = "/api/service1/{**catch-all}"
+        //    //    }
+        //    //};
+
+        //    //var routeConfigs = new[] { routeConfig };
+
+        //    //var clusterConfigs = new[]
+        //    //{
+        //    //    new ClusterConfig
+        //    //    {
+        //    //        ClusterId = "cluster1",
+        //    //        LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
+        //    //        Destinations = new Dictionary<string, DestinationConfig>
+        //    //        {
+        //    //            { "destination1", new DestinationConfig { Address = "https://localhost:5001/" } },
+        //    //            { "destination2", new DestinationConfig { Address = "https://localhost:5002/" } }
+        //    //        }
+        //    //    }
+        //    //};
+
+        //    //_config = new MyInMemoryConfig(routeConfigs, clusterConfigs);
+
+        //    Update();
+
+        //    //PeriodicUpdateAsync(_stoppingToken.Token);
+        //}
 
         public IProxyConfig GetConfig()
         {
-            return _config;            
-        }
-
-        private async Task PeriodicUpdateAsync(CancellationToken stoppingToken)
-        {
-            try
-            {
-                do
-                {
-                    var delay = TimeSpan.FromSeconds(60);
-                        //_serviceDiscoveryOptions.CurrentValue.PeriodicUpdateIntervalInSeconds);
-
-                    Update();
-                    await Task.Delay(delay, stoppingToken);
-
-                } while (!stoppingToken.IsCancellationRequested);
-
-            }
-            catch (TaskCanceledException) { }
+            return _config;
         }
 
         /// <summary>
-        /// By calling this method from the source we can dynamically adjust the proxy configuration.
-        /// Since our provider is registered in DI mechanism it can be injected via constructors anywhere.
+        /// Swaps the config state with a new snapshot of the configuration, then signals that the old one is outdated.
         /// </summary>
-        public void Update()//IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters)
+        public void Update(IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters)
         {
-            var oldConfig = _config;
+            var newConfig = new MyInMemoryConfig(routes, clusters);
+            UpdateInternal(newConfig);
+        }
 
-            var clusters = GetClustersAsync().Result;
-            List<RouteConfig> routes = new();
+        /// <summary>
+        /// Swaps the config state with a new snapshot of the configuration, then signals that the old one is outdated.
+        /// </summary>
+        public void Update(IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters, string revisionId)
+        {
+            var newConfig = new MyInMemoryConfig(routes, clusters, revisionId);
+            UpdateInternal(newConfig);
+        }
 
-            _config = new MyInMemoryConfig(routes, clusters);
+        private void UpdateInternal(MyInMemoryConfig newConfig)
+        {
+            var oldConfig = Interlocked.Exchange(ref _config, newConfig);
             oldConfig.SignalChange();
         }
 
-        async Task<IReadOnlyList<ClusterConfig>> GetClustersAsync()
+        ////////private async Task PeriodicUpdateAsync(CancellationToken stoppingToken)
+        ////////{
+        ////////    try
+        ////////    {
+        ////////        do
+        ////////        {
+        ////////            var delay = TimeSpan.FromSeconds(60);
+        ////////            //_serviceDiscoveryOptions.CurrentValue.PeriodicUpdateIntervalInSeconds);
+
+        ////////            Update();
+        ////////            await Task.Delay(delay, stoppingToken);
+
+        ////////        } while (!stoppingToken.IsCancellationRequested);
+
+        ////////    }
+        ////////    catch (TaskCanceledException) { }
+        ////////}
+
+        /////////// <summary>
+        /////////// By calling this method from the source we can dynamically adjust the proxy configuration.
+        /////////// Since our provider is registered in DI mechanism it can be injected via constructors anywhere.
+        /////////// </summary>
+        ////////public void Update()//IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters)
+        ////////{
+        ////////    var oldConfig = _config;
+
+        ////////    var routesAndClusters = GetRoutesAndClustersAsync().Result;
+
+        ////////    _config = new MyInMemoryConfig(routesAndClusters.Item1, routesAndClusters.Item2);
+        ////////    oldConfig?.SignalChange();
+        ////////    _config?.SignalChange();
+        ////////}
+
+        ////////public void Update(IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters)
+        ////////{
+        ////////    var newConfig = new MyInMemoryConfig(routes, clusters);
+        ////////    UpdateInternal(newConfig);
+        ////////}
+
+        async Task<(List<RouteConfig>, List<ClusterConfig>)> GetRoutesAndClustersAsync()
         {
             var getServicesFromConsulResult = await _consulClient.Agent.Services();
             var discoveredServices = getServicesFromConsulResult.Response;
 
+            List<RouteConfig> routes = new();
             List<ClusterConfig> clusters = new();
 
-            //foreach (var cluster in GetConfig().Clusters)
             foreach (var item in discoveredServices)
             {
-                var c = new ClusterConfig { ClusterId = item.Key };
-                Dictionary<string, DestinationConfig> destinations = CreateDestinationsForCluster(c, discoveredServices);
+                var routesJson = item.Value.Meta["Routes"];
+                var clustersJson = item.Value.Meta["Clusters"];
 
-                var newCluster = c with { Destinations = destinations };
-
-                clusters.Add(newCluster);
+                routes = JsonSerializer.Deserialize<List<RouteConfig>>(routesJson)!;
+                clusters = JsonSerializer.Deserialize<List<ClusterConfig>>(clustersJson)!;
             }
 
-            return clusters;
+            return (routes, clusters);
         }
 
         IReadOnlyList<Yarp.ReverseProxy.Configuration.RouteConfig> GetRoutes()

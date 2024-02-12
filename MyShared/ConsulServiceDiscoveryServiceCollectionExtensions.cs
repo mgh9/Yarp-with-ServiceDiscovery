@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 using MyShared;
 using Yarp.ReverseProxy.Configuration;
+using Yarp.ReverseProxy.Transforms;
+using Yarp.ReverseProxy.Transforms.Builder;
 using DestinationConfig = Yarp.ReverseProxy.Configuration.DestinationConfig;
 using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
 
@@ -68,7 +70,7 @@ public static class ConsulServiceDiscoveryServiceCollectionExtensions
             ID = $"{serviceDiscoveryOptions.ServiceId}-{serviceDiscoveryOptions.ServicePort}",
             Name = serviceDiscoveryOptions.ServiceName,
 
-            Address = localIpAddress,//serviceDiscoveryOptions.ServiceAddress,
+            Address = serviceDiscoveryOptions.ServiceAddress, //localIpAddress,//
             Port = serviceDiscoveryOptions.ServicePort,
 
             Checks = checks,
@@ -86,20 +88,38 @@ public static class ConsulServiceDiscoveryServiceCollectionExtensions
         // Generate default route and cluster configurations
         var defaultRoute = new RouteConfig
         {
-            RouteId = "defaulttttt_1",
-            ClusterId = "CLUSTERRRRR_IDDD_1",
+            RouteId = $"{serviceDiscoveryOptions.ServiceId}-route",
+            ClusterId = $"{serviceDiscoveryOptions.ServiceId}-cluster",
             //PathPrefix ="/api",
-            Match = new RouteMatch { Path = "/api" }, // Example route pattern
-            Metadata = new Dictionary<string, string>() // You can add metadata if needed
+            Match = new RouteMatch { Path = $"/{serviceDiscoveryOptions.ServiceId}/{{**remainder}}" }, // Example route pattern
+            Metadata = new Dictionary<string, string>(),
+
+            Transforms = new List<IReadOnlyDictionary<string, string>>
+            {
+                new Dictionary<string, string>
+                {
+                    {"PathPattern", "/{**remainder}"},
+                },
+            }
         };
 
         var defaultCluster = new ClusterConfig
         {
-            ClusterId = "CLUSTERRRRR_IDDD_1",
+            ClusterId = $"{serviceDiscoveryOptions.ServiceId}-Cluster",
 
             Destinations = new Dictionary<string, DestinationConfig>()
                                 {
-                                    { "serv_1", new DestinationConfig { Address = serviceDiscoveryOptions.HealthChecks.HttpsUrl } }
+                                    { serviceDiscoveryOptions.ServiceId, new DestinationConfig
+                                                {
+                                                    Address = $"{serviceDiscoveryOptions.ServiceScheme}://{serviceDiscoveryOptions.ServiceAddress}:{serviceDiscoveryOptions.ServicePort}",
+                                                    Health = serviceDiscoveryOptions.HealthChecks.HttpsUrl,
+                                                    Metadata = new Dictionary<string, string>()
+                                                    {
+                                                        {   "Swagger.PrefixPath", $"/{serviceDiscoveryOptions.ServiceId}"  },
+                                                        {   "Swagger.Paths", "/swagger/v1/swagger.json" }
+                                                    },
+                                                }
+                                    }
                                 },
             Metadata = new Dictionary<string, string>() // You can add metadata if needed
         };

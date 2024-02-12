@@ -5,16 +5,16 @@ namespace ConsulTester.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class WeatherForecastController : ControllerBase
+    public class Api01TestController : ControllerBase
     {
         private static readonly string[] Summaries = new[]
         {
             "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
         };
 
-        private readonly ILogger<WeatherForecastController> _logger;
+        private readonly ILogger<Api01TestController> _logger;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public Api01TestController(ILogger<Api01TestController> logger)
         {
             _logger = logger;
         }

@@ -4,6 +4,7 @@ public class ServiceDiscoveryOptions
 {
     public ConsulServiceDiscoveryOptions Consul { get; set; }
 
+    public string ServiceScheme { get; set; }
     public string ServiceAddress { get; set; }
     public int ServicePort { get; set; }
     public string ServiceName { get; set; }
