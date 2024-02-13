@@ -7,7 +7,7 @@ using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
 namespace ApiGateway.Extensions
 {
     public class MyCustomProxyConfigProvider : IProxyConfigProvider
-    { 
+    {
         private volatile MyInMemoryConfig _config;
         private readonly IConsulClient _consulClient;
         //private readonly CancellationTokenSource _stoppingToken = new();
@@ -17,6 +17,20 @@ namespace ApiGateway.Extensions
         {
             _consulClient = consulClient;
 
+            FetchAndRefreshRouteTable();
+            ///////_ = PeriodicUpdateAsync(default);
+        }
+
+        public MyCustomProxyConfigProvider(IConsulClient consulClient, IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters)
+        {
+            _consulClient = consulClient;
+
+            _config = new MyInMemoryConfig(routes, clusters, Guid.NewGuid().ToString());
+            Update(routes, clusters);
+        }
+
+        private void FetchAndRefreshRouteTable()
+        {
             var routesAndClusters = GetRoutesAndClustersAsync().Result;
             _config = new MyInMemoryConfig(routesAndClusters.Item1, routesAndClusters.Item2, Guid.NewGuid().ToString());
 
@@ -106,23 +120,24 @@ namespace ApiGateway.Extensions
             oldConfig.SignalChange();
         }
 
-        ////////private async Task PeriodicUpdateAsync(CancellationToken stoppingToken)
-        ////////{
-        ////////    try
-        ////////    {
-        ////////        do
-        ////////        {
-        ////////            var delay = TimeSpan.FromSeconds(60);
-        ////////            //_serviceDiscoveryOptions.CurrentValue.PeriodicUpdateIntervalInSeconds);
+        //////private async Task PeriodicUpdateAsync(CancellationToken stoppingToken)
+        //////{
+        //////    try
+        //////    {
+        //////        do
+        //////        {
+        //////            await Console.Out.WriteLineAsync("Refreshingggggggggggggggg routes table....");
+        //////            var delay = TimeSpan.FromSeconds(20);
+        //////            //_serviceDiscoveryOptions.CurrentValue.PeriodicUpdateIntervalInSeconds);
 
-        ////////            Update();
-        ////////            await Task.Delay(delay, stoppingToken);
+        //////            FetchAndRefreshRouteTable();
+        //////            await Task.Delay(delay, stoppingToken);
 
-        ////////        } while (!stoppingToken.IsCancellationRequested);
+        //////        } while (!stoppingToken.IsCancellationRequested);
 
-        ////////    }
-        ////////    catch (TaskCanceledException) { }
-        ////////}
+        //////    }
+        //////    catch (TaskCanceledException) { }
+        //////}
 
         /////////// <summary>
         /////////// By calling this method from the source we can dynamically adjust the proxy configuration.
@@ -155,11 +170,20 @@ namespace ApiGateway.Extensions
 
             foreach (var item in discoveredServices)
             {
+                var healthyResult = await _consulClient.Health.Service(item.Value.Service, "", true);
+                if (healthyResult.Response.Length == 0)
+                {
+                    continue;
+                }
+
                 var routesJson = item.Value.Meta["Routes"];
                 var clustersJson = item.Value.Meta["Clusters"];
 
-                routes = JsonSerializer.Deserialize<List<RouteConfig>>(routesJson)!;
-                clusters = JsonSerializer.Deserialize<List<ClusterConfig>>(clustersJson)!;
+                var currentServiceRoutes = JsonSerializer.Deserialize<List<RouteConfig>>(routesJson)!;
+                routes = routes.Concat(currentServiceRoutes).ToList();
+
+                var currentServiceDestinations = JsonSerializer.Deserialize<List<ClusterConfig>>(clustersJson)!;
+                clusters = clusters.Concat(currentServiceDestinations).ToList();
             }
 
             return (routes, clusters);
