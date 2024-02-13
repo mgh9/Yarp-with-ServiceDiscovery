@@ -6,7 +6,12 @@ using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
 
 namespace ApiGateway.Extensions
 {
-    public class MyCustomProxyConfigProvider : IProxyConfigProvider
+    public interface IYarpRoutesUpdater
+    {
+        void FetchAndRefreshRouteTable();
+    }
+
+    public class MyCustomProxyConfigProvider : IProxyConfigProvider, IYarpRoutesUpdater
     {
         private volatile MyInMemoryConfig _config;
         private readonly IConsulClient _consulClient;
@@ -29,7 +34,7 @@ namespace ApiGateway.Extensions
             Update(routes, clusters);
         }
 
-        private void FetchAndRefreshRouteTable()
+        public void FetchAndRefreshRouteTable()
         {
             var routesAndClusters = GetRoutesAndClustersAsync().Result;
             _config = new MyInMemoryConfig(routesAndClusters.Item1, routesAndClusters.Item2, Guid.NewGuid().ToString());

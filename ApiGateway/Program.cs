@@ -1,10 +1,10 @@
-using System.Runtime.ConstrainedExecution;
-using System.Security.Cryptography.X509Certificates;
 using System.Text.Json;
 using ApiGateway.Extensions;
 using Consul;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.HttpLogging;
 using Yarp.ReverseProxy.Configuration;
+using Yarp.ReverseProxy.Model;
 using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
 
 internal class Program
@@ -45,8 +45,9 @@ internal class Program
         //var routesClusters = GetRoutesAndClustersAsync(builder.Services).Result;
         builder.Services
                     .AddSingleton<IProxyConfigProvider, MyCustomProxyConfigProvider>()
-                    .AddReverseProxy()
-
+                    
+                    .AddReverseProxy()                    
+                    .LoadFromMemory(new List<RouteConfig>(), new List<ClusterConfig>())
                     //.Services.AddSingleton<IProxyConfigProvider>(new MyCustomProxyConfigProvider(x.GetService<IConsulClient>(), routesClusters.Item1, routesClusters.Item2))
                     
                     //.LoadFromMemory(new List<RouteConfig>(), new List<ClusterConfig>())
@@ -113,7 +114,18 @@ internal class Program
             var consulClient = context.RequestServices.GetRequiredService<IConsulClient>();
             var routesAndClusters = GetRoutesAndClustersAsync(consulClient).Result;
 
-            context.RequestServices.GetRequiredService<MyCustomProxyConfigProvider>().Update(routesAndClusters.Item1, routesAndClusters.Item2);
+            var routes = routesAndClusters.Item1;
+            var clusters = routesAndClusters.Item2;
+
+            //context.RequestServices.GetRequiredService<MyCustomProxyConfigProvider>().Update(routesAndClusters.Item1, routesAndClusters.Item2);
+
+            context.RequestServices.GetRequiredService<InMemoryConfigProvider>().Update(routes, clusters);
+
+            //var configProvider = context.RequestServices.GetRequiredService<IProxyConfigProvider>();
+            //.Update(newRoutes, newClusters);
+
+
+
             return Task.CompletedTask;
         })
             .WithName("Update Routes")
@@ -137,12 +149,17 @@ internal class Program
             proxyPipeline.Use(MyCustomProxyStep);
             // Don't forget to include these two middleware when you make a custom proxy pipeline (if you need them).
             proxyPipeline.UseSessionAffinity();
-            proxyPipeline.UseLoadBalancing();
+            //proxyPipeline.UseLoadBalancing();
         });
 
         app.Run();
 
 
+        var s =app.Services.GetService<IReverseProxyFeature>().AvailableDestinations.ToList();
+        foreach (var item in s)
+        {
+            await Console.Out.WriteLineAsync("-------->>> " + item.DestinationId);
+        }
 
 
 
