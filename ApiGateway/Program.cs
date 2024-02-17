@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.HttpLogging;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Model;
 using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using System.Runtime.InteropServices;
 
 internal class Program
 {
@@ -13,17 +15,26 @@ internal class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddHttpClient();
-        builder.Services.AddHttpLogging(options =>
+        builder.Services.ConfigureHttpClientDefaults(client =>
         {
-            options.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders;
+            //client.AddStandardResilienceHandler();
         });
 
+        builder.Services.AddHttpClient();
+        //builder.Services.AddHttpLogging(options =>
+        //{
+        //    options.LoggingFields = HttpLoggingFields.RequestPropertiesAndHeaders;
+        //});
+        builder.Services.AddHttpLogging(logging => { logging.LoggingFields = HttpLoggingFields.All; });
+        builder.Services.AddHealthChecks();
+        
         // Configure Consul client (adjust as needed)
-        builder.Services.AddSingleton<IConsulClient>(c => new ConsulClient(config =>
-        {
-            config.Address = new Uri("http://localhost:8500");
-        }));
+        builder.Services.AddConsulClient(builder.Configuration.GetSection("ConsulServiceDiscovery:Client"));
+
+        //////////builder.Services.AddSingleton<IConsulClient>(c => new ConsulClient(config =>
+        //////////{
+        //////////    config.Address = new Uri("http://localhost:8500");
+        //////////}));
 
 
         //builder.Services.AddReverseProxy().LoadFromMessages(x => { }); // No static configuration
@@ -35,41 +46,51 @@ internal class Program
         builder.Services.AddSwaggerGen();
 
 
+        builder.Services.AddReverseProxy()
+                        .ConfigureHttpClient((context, handler) =>
+                            {
+                                if (builder.Environment.IsDevelopment())
+                                {
+                                    handler.SslOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, chainErrors) => true;
+                                }
+                            })
+                            .LoadFromConsul();
 
 
 
+        ////////////////var routesClusters = GetRoutesAndClustersAsync(builder.Services).Result;
+        //////////////builder.Services
+        //////////////            //.AddSingleton<IProxyConfigProvider, MyCustomProxyConfigProvider>()
+        //////////////            .AddSingleton(new InMemoryConfigProvider(new List<RouteConfig>(), new List<ClusterConfig>()))
 
+        //////////////            .AddSingleton<IProxyConfigProvider>(s => s.GetRequiredService<InMemoryConfigProvider>())
 
-
-
-        //var routesClusters = GetRoutesAndClustersAsync(builder.Services).Result;
-        builder.Services
-                    .AddSingleton<IProxyConfigProvider, MyCustomProxyConfigProvider>()
+        //////////////            .AddReverseProxy()                    
+        //////////////            //.LoadFromMemory(new List<RouteConfig>(), new List<ClusterConfig>())
                     
-                    .AddReverseProxy()                    
-                    .LoadFromMemory(new List<RouteConfig>(), new List<ClusterConfig>())
-                    //.Services.AddSingleton<IProxyConfigProvider>(new MyCustomProxyConfigProvider(x.GetService<IConsulClient>(), routesClusters.Item1, routesClusters.Item2))
                     
-                    //.LoadFromMemory(new List<RouteConfig>(), new List<ClusterConfig>())
-                    .ConfigureHttpClient((context, handler) =>
-                    {
-                        if (builder.Environment.IsDevelopment())
-                        {
-                            handler.SslOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, chainErrors) => true;
-                        }
-                    });
+                    
+        //////////////            //.Services.AddSingleton<IProxyConfigProvider>(new MyCustomProxyConfigProvider(x.GetService<IConsulClient>(), routesClusters.Item1, routesClusters.Item2))
+        //////////////            //.LoadFromMemory(new List<RouteConfig>(), new List<ClusterConfig>())
+        //////////////            .ConfigureHttpClient((context, handler) =>
+        //////////////            {
+        //////////////                if (builder.Environment.IsDevelopment())
+        //////////////                {
+        //////////////                    handler.SslOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, chainErrors) => true;
+        //////////////                }
+        //////////////            });
 
-        ////////builder.Services.AddReverseProxy().LoadFromMemory(GetRoutes(), await GetClustersAsync(builder.Services));
-        //////var routesClusters = GetRoutesAndClustersAsync(builder.Services).Result;
-        //////builder.Services.AddReverseProxy()
-        //////                    .LoadFromMemory(routesClusters.Item1, routesClusters.Item2)
-        //////                    .ConfigureHttpClient((context, handler) =>
-        //////                    {
-        //////                        if (builder.Environment.IsDevelopment())
-        //////                        {
-        //////                            handler.SslOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, chainErrors) => true;
-        //////                        }
-        //////                    });
+        //////////////////////builder.Services.AddReverseProxy().LoadFromMemory(GetRoutes(), await GetClustersAsync(builder.Services));
+        ////////////////////var routesClusters = GetRoutesAndClustersAsync(builder.Services).Result;
+        ////////////////////builder.Services.AddReverseProxy()
+        ////////////////////                    .LoadFromMemory(routesClusters.Item1, routesClusters.Item2)
+        ////////////////////                    .ConfigureHttpClient((context, handler) =>
+        ////////////////////                    {
+        ////////////////////                        if (builder.Environment.IsDevelopment())
+        ////////////////////                        {
+        ////////////////////                            handler.SslOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, chainErrors) => true;
+        ////////////////////                        }
+        ////////////////////                    });
 
 
 
@@ -131,6 +152,24 @@ internal class Program
             .WithName("Update Routes")
             .WithOpenApi();
 
+        app.UseHttpLogging();
+
+        app.UseHealthChecks("/status", new HealthCheckOptions
+        {
+            ResponseWriter = async (context, report) =>
+            {
+                var json = JsonSerializer.Serialize(new
+                {
+                    Status = report.Status.ToString(),
+                    Environment = builder.Environment.EnvironmentName,
+                    Application = builder.Environment.ApplicationName,
+                    Platform = RuntimeInformation.FrameworkDescription
+                });
+
+                context.Response.ContentType = "application/json";
+                await context.Response.WriteAsync(json);
+            }
+        });
 
         // Use custom provider to load clusters and routes
         app.UseRouting();
@@ -139,8 +178,22 @@ internal class Program
             //endpoints.MapReverseProxy();
         });
 
-        app.UseHttpLogging();
         // Enable endpoint routing, required for the reverse proxy
+
+        app.MapGet("/", async ctx =>
+        {
+            var baseUrl = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+            var payload = new
+            {
+                AvailableRoutes = new[]
+                {
+                    $"{baseUrl}/items"
+                }
+            };
+
+            await ctx.Response.WriteAsJsonAsync(payload, new JsonSerializerOptions { WriteIndented = true });
+        });
+
 
         //app.MapReverseProxy();
         app.MapReverseProxy(proxyPipeline =>
@@ -148,21 +201,11 @@ internal class Program
             // Use a custom proxy middleware, defined below
             proxyPipeline.Use(MyCustomProxyStep);
             // Don't forget to include these two middleware when you make a custom proxy pipeline (if you need them).
-            proxyPipeline.UseSessionAffinity();
+            //proxyPipeline.UseSessionAffinity();
             //proxyPipeline.UseLoadBalancing();
         });
 
         app.Run();
-
-
-        var s =app.Services.GetService<IReverseProxyFeature>().AvailableDestinations.ToList();
-        foreach (var item in s)
-        {
-            await Console.Out.WriteLineAsync("-------->>> " + item.DestinationId);
-        }
-
-
-
 
 
         async Task<IReadOnlyList<ClusterConfig>> GetClustersAsync(IServiceCollection services)

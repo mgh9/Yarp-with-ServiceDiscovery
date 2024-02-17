@@ -1,19 +1,21 @@
-using Consul;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
-using MyShared;
+using System.Runtime.InteropServices;
+using System.Text.Json;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddSingleton<IConsulClient, ConsulClient>(c => new ConsulClient(consulConfig =>
-{
-    consulConfig.Address = new Uri(builder.Configuration["ServiceDiscovery:Consul:Address"]);
-}));
+
+//builder.Services.AddSingleton<IConsulClient, ConsulClient>(c => new ConsulClient(consulConfig =>
+//{
+//    consulConfig.Address = new Uri(builder.Configuration["ServiceDiscovery:Consul:Address"]);
+//}));
+
+builder.Services.AddServiceDiscoveryConsul(builder.Configuration.GetSection("ConsulServiceDiscovery"));
+
 
 builder.Services.AddControllers();
-
-builder.Services.AddHealthChecks()
-                    .AddCheck<MainHealthCheck>("MainHealthCheck");
+builder.Services.AddHealthChecks();
 
 // Add services to the container.
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
@@ -36,7 +38,7 @@ var summaries = new[]
     "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
 };
 
-app.MapGet("/api2test", () =>
+app.MapGet("/api02Test", () =>
 {
     var forecast = Enumerable.Range(1, 5).Select(index =>
         new WeatherForecast
@@ -48,18 +50,41 @@ app.MapGet("/api2test", () =>
         .ToArray();
     return forecast;
 })
-.WithName("GetApi2TestData")
+.WithName("GetApi02TestData")
 .WithOpenApi();
 
 
-app.MapHealthChecks("/healthz", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+//app.MapHealthChecks("/healthz", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+//{
+//    // AllowCachingResponses = true,
+
+//});
+
+app.UseHealthChecks("/status", new HealthCheckOptions
 {
-    // AllowCachingResponses = true,
+    ResponseWriter = async (context, report) =>
+    {
+        var json = JsonSerializer.Serialize(new
+        {
+            Status = report.Status.ToString(),
+            Environment = builder.Environment.EnvironmentName,
+            Application = builder.Environment.ApplicationName,
+            Platform = RuntimeInformation.FrameworkDescription,
+            OS = RuntimeInformation.OSDescription + " - " + RuntimeInformation.OSArchitecture,
+        });
+
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync(json);
+    }
 });
+
+
 
 app.MapControllers();
 
-app.AddConsulServiceDiscovery(app.Configuration.GetRequiredSection("ServiceDiscovery").Get<ServiceDiscoveryOptions>()!, app.Lifetime);
+//app.AddConsulServiceDiscovery(app.Configuration.GetRequiredSection("ServiceDiscovery").Get<ServiceDiscoveryOptions>()!, app.Lifetime);
+
+
 
 app.Run();
 
@@ -68,24 +93,3 @@ internal record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary
     public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
 }
 
-internal class MainHealthCheck : IHealthCheck
-{
-    private readonly IEnumerable<IHealthCheck> _checks;
-
-    public MainHealthCheck(IEnumerable<IHealthCheck> checks)
-    {
-        _checks = checks;
-    }
-
-    public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
-    {
-        var results = await Task.WhenAll(_checks.Select(c => c.CheckHealthAsync(context, cancellationToken)));
-
-        if (results.Any(r => r.Status == Microsoft.Extensions.Diagnostics.HealthChecks.HealthStatus.Unhealthy))
-        {
-            return HealthCheckResult.Unhealthy();
-        }
-
-        return HealthCheckResult.Healthy();
-    }
-}

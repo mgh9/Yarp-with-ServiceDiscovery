@@ -1,6 +1,4 @@
-using Consul;
 using Coordinator.HealthChecking;
-using MyShared;
 using Serilog;
 using Serilog.Events;
 
@@ -19,15 +17,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
         AddSerilogConfiguration(builder);
 
-        // Add services to the container.
-        //builder.Services.AddHttpContextAccessor();
-        builder.Services.AddSingleton<IConsulClient, ConsulClient>(c => new ConsulClient(consulConfig =>
-        {
-            consulConfig.Address = new Uri(builder.Configuration["ServiceDiscovery:Consul:Address"]);
-        }));
-
-        //builder.Services.AddSingleton<IServiceDiscoveryKeyValueProvider, ServiceDiscoveryKeyValueProvider>();
-        //builder.Services.Configure<ServiceDiscoveryOptions>(builder.Configuration.GetSection("ServiceDiscovery"));
+        builder.Services.AddServiceDiscoveryConsul(builder.Configuration.GetSection("ConsulServiceDiscovery"));
 
         builder.Services.AddControllers();
 
@@ -56,9 +46,6 @@ public class Program
 
         app.UseAuthorization();
         app.MapControllers();
-
-        var serviceDiscoveryOptions = app.Configuration.GetSection("ServiceDiscovery").Get<ServiceDiscoveryOptions>();
-        app.AddConsulServiceDiscovery(serviceDiscoveryOptions, app.Lifetime);
 
         app.Run();
     }
