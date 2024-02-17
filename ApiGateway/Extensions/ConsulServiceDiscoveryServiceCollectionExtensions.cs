@@ -1,14 +1,15 @@
-﻿using ApiGateway.Workers;
+﻿using ApiGateway.ServiceDiscovery.Abstractions;
+using ApiGateway.ServiceDiscovery.Consul;
+using ApiGateway.Workers;
 using Consul;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using System.Net.Http.Headers;
 
-namespace ApiGateway.Extensions
+namespace Microsoft.Extensions.DependencyInjection
 {
-    public static class ServiceCollectionExtensions
+    public static class ConsulServiceDiscoveryServiceCollectionExtensions
     {
-        public static IServiceCollection AddConsulClient(this IServiceCollection services,
-            IConfigurationSection config)
+        public static IServiceCollection AddConsulClient(this IServiceCollection services, IConfigurationSection config)
         {
             services.AddHttpClient("Consul", client =>
             {
@@ -39,6 +40,7 @@ namespace ApiGateway.Extensions
         public static IReverseProxyBuilder LoadFromConsul(this IReverseProxyBuilder builder)
         {
             builder.LoadFromMemory(default, default);
+
             builder.Services.AddHostedService<ConsulMonitorWorker>();
 
             return builder;
