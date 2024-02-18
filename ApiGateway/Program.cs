@@ -1,12 +1,8 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using ApiGateway.Extensions;
-using ApiGateway.ServiceDiscovery;
 using ApiGateway.ServiceDiscovery.Abstractions;
 using ApiGateway.ServiceDiscovery.Consul;
-using ApiGateway.Workers;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.HttpLogging;
 
 internal class Program
@@ -46,14 +42,21 @@ internal class Program
         builder.Services.AddCustomReverseProxy(builder.Configuration);
 
 
+        builder.Services.AddCors();
         var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
-        if (app.Environment.IsProduction() == false)
-        {
-            app.UseSwagger();
-            app.UseSwaggerUI();
-        }
+        app.UseCors(builder => builder
+            .AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader());
+        
+        //////// Configure the HTTP request pipeline.
+        //////if (app.Environment.IsProduction() == false)
+        //////{
+        //////    app.UseSwagger();
+        //////    app.UseSwaggerUI();
+        //////}
+        app.PrepareSwaggerIfNotProduction();
 
         //app.UseHttpsRedirection();
 
@@ -77,8 +80,11 @@ internal class Program
         .WithName("GetWeatherForecast")
         .WithOpenApi();
 
+        //app.MapGet("/Reload", async (HttpContext context, ILogger logger) =>
         app.MapGet("/Reload", async context =>
         {
+            //logger.LogInformation("Reloading manually...");
+
             var serviceDiscovery = context.RequestServices.GetRequiredService<IServiceDiscovery>();
             await serviceDiscovery.ReloadRoutesAndClustersAsync(default);
         })
@@ -87,8 +93,6 @@ internal class Program
 
         app.UseHttpLogging();
 
-
-        app.PrepareSwaggerIfNotProduction();
 
         app.UseHealthChecks("/status", new HealthCheckOptions
         {
@@ -128,7 +132,6 @@ internal class Program
 
             await ctx.Response.WriteAsJsonAsync(payload, new JsonSerializerOptions { WriteIndented = true });
         });
-
 
         app.MapReverseProxy(proxyPipeline =>
         {

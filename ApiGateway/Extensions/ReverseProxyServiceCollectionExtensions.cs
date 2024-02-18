@@ -1,4 +1,5 @@
 ﻿using System.Collections.ObjectModel;
+using ApiGateway.Extensions;
 using ApiGateway.ServiceDiscovery.Abstractions;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Swagger;
@@ -88,12 +89,18 @@ internal static class ReverseProxyServiceCollectionExtensions
             return;
 
         app.UseSwagger();
+
+//        c.ConfigObject.Urls = new SwaggerEndpointEnumerator();
+
         app.UseSwaggerUI(options =>
         {
             var serviceDiscovery = app.Services.GetService<IServiceDiscovery>();
+            options.ConfigObject.Urls = new SwaggerEndpointEnumerator(serviceDiscovery);
+            //options.ConfigObject.DocExpansion= Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.
+
             //var serviceDiscoveryKeyValueProvider = app.Services.GetRequiredService<IServiceDiscoveryKeyValueProvider>();
             //var reverseProxy = serviceDiscoveryKeyValueProvider.GetAsync<ReverseProxyOptions>("ReverseProxy", default).Result;
-            var clusters = serviceDiscovery.GetClusters();
+            var clusters = serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
 
             foreach (var cluster in clusters)
             {

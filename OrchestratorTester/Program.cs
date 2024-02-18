@@ -13,6 +13,7 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddServiceDiscoveryConsul(builder.Configuration.GetSection("ConsulServiceDiscovery"));
 
+builder.Services.AddCors();
 
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
@@ -23,6 +24,11 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
+app.UseCors(builder => builder
+    .AllowAnyOrigin()
+    .AllowAnyMethod()
+    .AllowAnyHeader());
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
