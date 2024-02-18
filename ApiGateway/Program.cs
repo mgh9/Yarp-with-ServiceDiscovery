@@ -52,16 +52,7 @@ internal class Program
 
         app.MapGet("/", async context =>
         {
-            var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
-            var payload = new
-            {
-                AvailableRoutes = new[]
-                {
-                    $"{baseUrl}/items"
-                }
-            };
-
-            await context.Response.WriteAsJsonAsync($"{app.Environment.ApplicationName} is here", new JsonSerializerOptions { WriteIndented = true });
+            await context.Response.WriteAsync($"{app.Environment.ApplicationName} is here");
         });
 
         app.Run();
