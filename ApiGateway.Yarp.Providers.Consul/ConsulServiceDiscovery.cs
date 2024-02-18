@@ -133,17 +133,17 @@ namespace ApiGateway.ServiceDiscovery.Consul
                     {
                         ClusterId = svc.Service,
                         LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
-                        ////////HealthCheck = new()
-                        ////////{
-                        ////////    Active = new ActiveHealthCheckConfig
-                        ////////    {
-                        ////////        Enabled = true,
-                        ////////        Interval = TimeSpan.FromSeconds(int.Parse(serviceHealthCheckSeconds)),
-                        ////////        Timeout = TimeSpan.FromSeconds(int.Parse(serviceHealthTimeoutSeconds)),
-                        ////////        Policy = HealthCheckConstants.ActivePolicy.ConsecutiveFailures,
-                        ////////        Path = serviceHealthCheckEndpoint
-                        ////////    }
-                        ////////},
+                        HealthCheck = new()
+                        {
+                            Active = new ActiveHealthCheckConfig
+                            {
+                                Enabled = true,
+                                Interval = TimeSpan.FromSeconds(int.Parse(serviceHealthCheckSeconds)),
+                                Timeout = TimeSpan.FromSeconds(int.Parse(serviceHealthTimeoutSeconds)),
+                                Policy = HealthCheckConstants.ActivePolicy.ConsecutiveFailures,
+                                Path = serviceHealthCheckEndpoint
+                            }
+                        },
 
                         Metadata = new Dictionary<string, string>
                         {
@@ -154,8 +154,8 @@ namespace ApiGateway.ServiceDiscovery.Consul
                     };
 
                 var destination = cluster.Destinations is null
-                    ? new Dictionary<string, DestinationConfig>()
-                    : new Dictionary<string, DestinationConfig>(cluster.Destinations);
+                                        ? new Dictionary<string, DestinationConfig>()
+                                        : new Dictionary<string, DestinationConfig>(cluster.Destinations);
 
                 var address = $"{svc.Address}:{svc.Port}";
 

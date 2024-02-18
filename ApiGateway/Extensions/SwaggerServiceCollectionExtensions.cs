@@ -1,8 +1,8 @@
-﻿using ApiGateway.Extensions;
+﻿using AtiyanSeir.B2B.ApiGateway.Swagger;
 using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace AtiyanSeir.B2B.ApiGateway.Extensions;
+namespace Microsoft.Extensions.DependencyInjection;
 
 internal static class SwaggerServiceCollectionExtensions
 {

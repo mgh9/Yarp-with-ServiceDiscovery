@@ -31,7 +31,6 @@ internal static class ReverseProxyServiceCollectionExtensions
         Routes = new Dictionary<string, RouteConfig>()
     };
 
-
     /// <summary>
     /// Prepare central-swagger based on routes/clusters configurations
     /// </summary>

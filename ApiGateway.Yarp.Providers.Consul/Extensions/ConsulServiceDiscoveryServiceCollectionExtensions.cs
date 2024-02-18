@@ -47,7 +47,7 @@ public static class ConsulServiceDiscoveryServiceCollectionExtensions
 
     public static IServiceCollection RegisterWithConsulServiceDiscovery(this IServiceCollection services, IConfigurationSection config)
     {
-        services.AddConsulClient(config.GetSection("Client"));
+        services.AddConsulClient(config.GetSection("ConsulClient"));
 
         services.AddHostedService<ConsulRegistrationBackgroundService>();
 

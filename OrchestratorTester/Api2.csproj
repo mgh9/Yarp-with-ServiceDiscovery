@@ -8,12 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
-	  <PackageReference Include="Consul" Version="1.7.14.3" />
-	  <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
-  </ItemGroup>
-
-  <ItemGroup>
     <ProjectReference Include="..\ApiGateway.ServiceDiscovery.Abstractions\AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.csproj" />
     <ProjectReference Include="..\ApiGateway.Yarp.Providers.Consul\AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.csproj" />
   </ItemGroup>

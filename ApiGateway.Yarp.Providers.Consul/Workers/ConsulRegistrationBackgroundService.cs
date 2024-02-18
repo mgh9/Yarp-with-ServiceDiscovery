@@ -20,8 +20,8 @@ internal class ConsulRegistrationBackgroundService : BackgroundService
                     , ILogger<ConsulRegistrationBackgroundService> logger)
     {
         _consulClient = consulClient;
-        _appRegistrationConfig = configuration.GetRequiredSection("ConsulServiceDiscovery:Registration");
-        _appRegistrationConfigMeta = configuration.GetRequiredSection("ConsulServiceDiscovery:Registration:Meta");
+        _appRegistrationConfig = configuration.GetRequiredSection("ConsulServiceDiscovery:ServiceRegistration");
+        _appRegistrationConfigMeta = configuration.GetRequiredSection("ConsulServiceDiscovery:ServiceRegistration:Meta");
         _logger = logger;
     }
 
@@ -34,7 +34,7 @@ internal class ConsulRegistrationBackgroundService : BackgroundService
 
             // Set unique ID
             _serviceRegistration!.ID = GenerateUniqueIdForThisInstance();
-            _logger.LogInformation("Service unique ID set as : `{ID}`", _serviceRegistration!.ID);
+            _logger.LogDebug("Service unique ID set as : `{ID}`", _serviceRegistration!.ID);
 
             // Set hostname
             _serviceRegistration.Address = await FetchServiceAddressAsync(stoppingToken);

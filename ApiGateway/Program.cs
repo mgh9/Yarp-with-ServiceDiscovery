@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using System.Text.Json;
-using AtiyanSeir.B2B.ApiGateway.Extensions;
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
@@ -22,10 +21,7 @@ internal class Program
 
         app.UseHttpLogging();
         app.UseRouting();
-        app.UseEndpoints(endpoints =>
-        {
-            //endpoints.MapReverseProxy();
-        });
+        app.MapReverseProxy();
 
         app.UseSwaggerIfNotProduction();
 
@@ -54,9 +50,9 @@ internal class Program
             .WithName("Update Routes")
             .WithOpenApi();
 
-        app.MapGet("/", async ctx =>
+        app.MapGet("/", async context =>
         {
-            var baseUrl = $"{ctx.Request.Scheme}://{ctx.Request.Host}";
+            var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
             var payload = new
             {
                 AvailableRoutes = new[]
@@ -65,7 +61,7 @@ internal class Program
                 }
             };
 
-            await ctx.Response.WriteAsJsonAsync($"{app.Environment.ApplicationName} is here", new JsonSerializerOptions { WriteIndented = true });
+            await context.Response.WriteAsJsonAsync($"{app.Environment.ApplicationName} is here", new JsonSerializerOptions { WriteIndented = true });
         });
 
         app.Run();

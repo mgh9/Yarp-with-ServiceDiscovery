@@ -3,7 +3,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.OpenApi.Models;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
-namespace ApiGateway.Extensions;
+namespace AtiyanSeir.B2B.ApiGateway.Swagger;
 
 public class ConfigureSwaggerOptions(IOptionsMonitor<ReverseProxyDocumentFilterConfig> reverseProxyDocumentFilterConfigOptions)
                                     : IConfigureOptions<SwaggerGenOptions>
