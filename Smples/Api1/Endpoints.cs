@@ -1,4 +1,6 @@
-﻿namespace Api1;
+﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
+
+namespace Api1;
 
 public static class Endpoints
 {
@@ -9,6 +11,7 @@ public static class Endpoints
             return $"{DateTime.Now} - API 01 DATA";
         })
             .WithName("GetApi01Data")
+            .AddEndpointFilter<LBInfoFilter>()
             .WithOpenApi();
     }
 }

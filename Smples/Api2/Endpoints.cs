@@ -1,5 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.Json;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 namespace Api2;
@@ -13,6 +14,7 @@ public static class Endpoints
             return $"{DateTime.Now} - API 02 DATA";
         })
             .WithName("GetApi02Data")
+            .AddEndpointFilter<LBInfoFilter>()
             .WithOpenApi();
 
         app.UseHealthChecks("/status", new HealthCheckOptions

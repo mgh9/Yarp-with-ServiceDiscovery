@@ -61,6 +61,7 @@ internal class ConsulRegistrationBackgroundService : BackgroundService
         var servicePort = _appRegistrationConfig.GetValue<int>("Port");
 
         var serviceHealthEndpoint = $"{_serviceRegistration.Address}:{servicePort}{_appRegistrationConfigMeta.GetValue<string>("service_health_endpoint")}";
+        _logger.LogDebug("Service healthCheck : {healthCheck}", serviceHealthEndpoint);
         var serviceHealthCheckSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_check_seconds");
         var serviceHealthTimeoutSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_timeout_seconds");
         var serviceHealthDeregisterSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_deregister_seconds");
