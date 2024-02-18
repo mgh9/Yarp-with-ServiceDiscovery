@@ -1,9 +1,7 @@
-﻿using ApiGateway.ServiceDiscovery.Abstractions;
-using ApiGateway.ServiceDiscovery.Consul;
+﻿using System.Net.Http.Headers;
 using ApiGateway.Workers;
 using Consul;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using System.Net.Http.Headers;
 
 namespace Microsoft.Extensions.DependencyInjection
 {

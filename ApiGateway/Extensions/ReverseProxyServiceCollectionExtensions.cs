@@ -94,6 +94,9 @@ internal static class ReverseProxyServiceCollectionExtensions
 
         app.UseSwaggerUI(options =>
         {
+            options.DocumentTitle = "AtiyanSeir API Gateway";
+            //options.RoutePrefix = "";
+
             var serviceDiscovery = app.Services.GetService<IServiceDiscovery>();
             options.ConfigObject.Urls = new SwaggerEndpointEnumerator(serviceDiscovery);
             //options.ConfigObject.DocExpansion= Swashbuckle.AspNetCore.SwaggerUI.DocExpansion.

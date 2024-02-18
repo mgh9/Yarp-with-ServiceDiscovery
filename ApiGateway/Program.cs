@@ -42,14 +42,8 @@ internal class Program
         builder.Services.AddCustomReverseProxy(builder.Configuration);
 
 
-        builder.Services.AddCors();
         var app = builder.Build();
 
-        app.UseCors(builder => builder
-            .AllowAnyOrigin()
-            .AllowAnyMethod()
-            .AllowAnyHeader());
-        
         //////// Configure the HTTP request pipeline.
         //////if (app.Environment.IsProduction() == false)
         //////{

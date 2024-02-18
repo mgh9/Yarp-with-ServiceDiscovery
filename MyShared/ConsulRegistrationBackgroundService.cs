@@ -113,7 +113,7 @@ namespace MyShared
 
             var dnsHostName = Dns.GetHostName();
             var hostname = await Dns.GetHostEntryAsync(dnsHostName, stoppingToken);
-            //_serviceRegistration.Address = //$"http://192.168.12.112";
+            //_serviceRegistration.Address = //$"http://192.168.0.104";
 
             return $"http://{hostname.HostName}";
         }
