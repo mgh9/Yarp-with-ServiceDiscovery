@@ -14,7 +14,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\MyShared\MyShared.csproj" />
+    <ProjectReference Include="..\ApiGateway.ServiceDiscovery.Abstractions\AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.csproj" />
+    <ProjectReference Include="..\ApiGateway.Yarp.Providers.Consul\AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.csproj" />
   </ItemGroup>
 
 </Project>

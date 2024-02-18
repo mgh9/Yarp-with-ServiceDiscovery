@@ -22,7 +22,7 @@ public class ConfigureSwaggerOptions(IOptionsMonitor<ReverseProxyDocumentFilterC
         filterDescriptors.Add(new FilterDescriptor
         {
             Type = typeof(ReverseProxyDocumentFilter),
-            Arguments = new object[] { }
+            Arguments = []
         });
 
         options.DocumentFilterDescriptors = filterDescriptors;

@@ -11,7 +11,7 @@ builder.Services.AddHttpContextAccessor();
 //    consulConfig.Address = new Uri(builder.Configuration["ServiceDiscovery:Consul:Address"]);
 //}));
 
-builder.Services.AddServiceDiscoveryConsul(builder.Configuration.GetSection("ConsulServiceDiscovery"));
+builder.Services.RegisterWithConsulServiceDiscovery(builder.Configuration.GetSection("ConsulServiceDiscovery"));
 
 builder.Services.AddCors();
 

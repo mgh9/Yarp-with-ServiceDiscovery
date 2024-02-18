@@ -1,11 +1,12 @@
-﻿using Consul;
-using System.Net;
+﻿using System.Net;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
+using Consul;
+using Microsoft.Extensions.Logging;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Health;
 using Yarp.ReverseProxy.LoadBalancing;
-using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
 using DestinationConfig = Yarp.ReverseProxy.Configuration.DestinationConfig;
-using ApiGateway.ServiceDiscovery.Abstractions;
+using RouteConfig = Yarp.ReverseProxy.Configuration.RouteConfig;
 
 namespace ApiGateway.ServiceDiscovery.Consul
 {
@@ -22,6 +23,11 @@ namespace ApiGateway.ServiceDiscovery.Consul
                                     , InMemoryConfigProvider proxyConfigProvider
                                     , ILogger<ConsulServiceDiscovery> logger)
         {
+            ArgumentNullException.ThrowIfNull(consulClient);
+            ArgumentNullException.ThrowIfNull(proxyConfigProvider);
+            ArgumentNullException.ThrowIfNull(proxyConfigValidator);
+            ArgumentNullException.ThrowIfNull(logger);
+
             _consulClient = consulClient;
             _proxyConfigValidator = proxyConfigValidator;
             _proxyConfigProvider = proxyConfigProvider;
@@ -38,10 +44,10 @@ namespace ApiGateway.ServiceDiscovery.Consul
             return _proxyConfigProvider.GetConfig().Routes;
         }
 
-        public async Task ReloadRoutesAndClustersAsync(CancellationToken stoppingToken)
+        public async Task ReloadRoutesAndClustersAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Updating route configs (routes/clusters) from Consul...");
-            var serviceResult = await _consulClient.Agent.Services(stoppingToken);
+            var serviceResult = await _consulClient.Agent.Services(cancellationToken);
 
             if (serviceResult.StatusCode == HttpStatusCode.OK)
             {
@@ -127,17 +133,17 @@ namespace ApiGateway.ServiceDiscovery.Consul
                     {
                         ClusterId = svc.Service,
                         LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
-                        //HealthCheck = new()
-                        //{
-                        //    Active = new ActiveHealthCheckConfig
-                        //    {
-                        //        Enabled = true,
-                        //        Interval = TimeSpan.FromSeconds(int.Parse(serviceHealthCheckSeconds)),
-                        //        Timeout = TimeSpan.FromSeconds(int.Parse(serviceHealthTimeoutSeconds)),
-                        //        Policy = HealthCheckConstants.ActivePolicy.ConsecutiveFailures,
-                        //        Path = serviceHealthCheckEndpoint
-                        //    }
-                        //},
+                        ////////HealthCheck = new()
+                        ////////{
+                        ////////    Active = new ActiveHealthCheckConfig
+                        ////////    {
+                        ////////        Enabled = true,
+                        ////////        Interval = TimeSpan.FromSeconds(int.Parse(serviceHealthCheckSeconds)),
+                        ////////        Timeout = TimeSpan.FromSeconds(int.Parse(serviceHealthTimeoutSeconds)),
+                        ////////        Policy = HealthCheckConstants.ActivePolicy.ConsecutiveFailures,
+                        ////////        Path = serviceHealthCheckEndpoint
+                        ////////    }
+                        ////////},
 
                         Metadata = new Dictionary<string, string>
                         {

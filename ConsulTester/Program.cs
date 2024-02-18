@@ -17,7 +17,7 @@ public class Program
         var builder = WebApplication.CreateBuilder(args);
         AddSerilogConfiguration(builder);
 
-        builder.Services.AddServiceDiscoveryConsul(builder.Configuration.GetSection("ConsulServiceDiscovery"));
+        builder.Services.RegisterWithConsulServiceDiscovery(builder.Configuration.GetSection("ConsulServiceDiscovery"));
 
         builder.Services.AddControllers();
 
