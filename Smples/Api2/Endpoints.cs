@@ -9,8 +9,15 @@ public static class Endpoints
 {
     internal static void UseSampleEndpoints(this WebApplication app, IWebHostEnvironment environment)
     {
-        app.MapGet("/GetApi02Data", () =>
+        app.MapGet("/GetApi02Data", (HttpContext context) =>
         {
+            var request = context.Request;
+            var host = request.Host;
+            var scheme = request.Scheme;
+
+            // Log the endpoint information
+            app.Logger.LogDebug($"API 02 Endpoint called: {scheme}://{host}{request.Path}");
+
             return $"{DateTime.Now} - API 02 DATA";
         })
             .WithName("GetApi02Data")

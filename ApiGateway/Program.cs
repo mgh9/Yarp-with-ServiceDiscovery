@@ -25,22 +25,22 @@ internal class Program
 
         app.UseSwaggerIfNotProduction();
 
-        app.UseHealthChecks("/status", new HealthCheckOptions
-        {
-            ResponseWriter = async (context, report) =>
-            {
-                var json = JsonSerializer.Serialize(new
-                {
-                    Status = report.Status.ToString(),
-                    Environment = builder.Environment.EnvironmentName,
-                    Application = builder.Environment.ApplicationName,
-                    Platform = RuntimeInformation.FrameworkDescription
-                });
+        //app.UseHealthChecks("/status", new HealthCheckOptions
+        //{
+        //    ResponseWriter = async (context, report) =>
+        //    {
+        //        var json = JsonSerializer.Serialize(new
+        //        {
+        //            Status = report.Status.ToString(),
+        //            Environment = builder.Environment.EnvironmentName,
+        //            Application = builder.Environment.ApplicationName,
+        //            Platform = RuntimeInformation.FrameworkDescription
+        //        });
 
-                context.Response.ContentType = "application/json";
-                await context.Response.WriteAsync(json);
-            }
-        });
+        //        context.Response.ContentType = "application/json";
+        //        await context.Response.WriteAsync(json);
+        //    }
+        //});
 
         app.MapGet("/Reload", async context =>
         {
