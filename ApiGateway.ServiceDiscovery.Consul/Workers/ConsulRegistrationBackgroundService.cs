@@ -34,7 +34,11 @@ internal class ConsulRegistrationBackgroundService : BackgroundService
 
             // Set unique ID
             _serviceRegistration!.ID = GenerateUniqueIdForThisInstance();
-            _logger.LogDebug("Service unique ID set as : `{ID}`", _serviceRegistration!.ID);
+            _logger.LogDebug("Service instance unique ID set as : `{ID}`", _serviceRegistration!.ID);
+            
+            _logger.LogDebug("First, deregister the same service[s] (same instance ID) `{ID}` if there is any...", _serviceRegistration!.ID);
+            var deregisterPreviousInstancesOfThisServiceResult = await _consulClient.Agent.ServiceDeregister(_serviceRegistration.ID, stoppingToken);
+            _logger.LogDebug("deregistering same service[s] with `{ID}` result {result}", _serviceRegistration!.ID, deregisterPreviousInstancesOfThisServiceResult.StatusCode);
 
             // Set hostname
             _serviceRegistration.Address = await FetchServiceAddressAsync(stoppingToken);
@@ -91,7 +95,7 @@ internal class ConsulRegistrationBackgroundService : BackgroundService
         var rand = new Random();
         var instanceId = rand.Next().ToString();
 
-        return $"{_serviceRegistration.Name}-{instanceId}";
+        return $"{_serviceRegistration.Name}-{_serviceRegistration.Port}";
     }
 
     private void PrepareServiceRegistration()
@@ -114,7 +118,7 @@ internal class ConsulRegistrationBackgroundService : BackgroundService
 
         var dnsHostName = Dns.GetHostName();
         var hostname = await Dns.GetHostEntryAsync(dnsHostName, stoppingToken);
-        //_serviceRegistration.Address = //$"http://192.168.0.104";
+        //_serviceRegistration.Address = //$"http://192.168.12.112";
 
         return $"http://{hostname.HostName}";
     }

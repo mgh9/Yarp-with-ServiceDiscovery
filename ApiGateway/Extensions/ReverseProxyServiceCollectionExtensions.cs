@@ -23,38 +23,19 @@ internal static class ReverseProxyServiceCollectionExtensions
                     })
                     .LoadFromConsul()
                     .AddSwagger(EmptyReverseProxyDocumentFilterConfig);
+                    //.AddSwagger((GetSwaggerConfig(reverseProxy.Clusters));
     }
 
-    private static ReverseProxyDocumentFilterConfig EmptyReverseProxyDocumentFilterConfig => new()
+    private static ReverseProxyDocumentFilterConfig EmptyReverseProxyDocumentFilterConfig
     {
-        Clusters = new Dictionary<string, ReverseProxyDocumentFilterConfig.Cluster>(),
-        Routes = new Dictionary<string, RouteConfig>()
-    };
-
-    /// <summary>
-    /// Prepare central-swagger based on routes/clusters configurations
-    /// </summary>
-    /// <param name="app"></param>
-    internal static void UseSwaggerIfNotProduction(this WebApplication app)
-    {
-        if (app.Environment.IsProduction())
-            return;
-
-        app.UseSwagger();
-
-        app.UseSwaggerUI(options =>
+        get
         {
-            options.DocumentTitle = "AtiyanSeir API Gateway";
-            var serviceDiscovery = app.Services.GetService<IServiceDiscovery>();
-            options.ConfigObject.Urls = new SwaggerEndpointEnumerator(serviceDiscovery);
-
-            var clusters = serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
-
-            foreach (var cluster in clusters)
+            return new()
             {
-                options.SwaggerEndpoint($"/swagger/{cluster.ClusterId}/swagger.json", cluster.ClusterId);
-            }
-        });
+                Clusters = new Dictionary<string, ReverseProxyDocumentFilterConfig.Cluster>(),
+                Routes = new Dictionary<string, RouteConfig>()
+            };
+        }
     }
 }
 

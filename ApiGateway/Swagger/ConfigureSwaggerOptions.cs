@@ -5,10 +5,14 @@ using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace AtiyanSeir.B2B.ApiGateway.Swagger;
 
-public class ConfigureSwaggerOptions(IOptionsMonitor<ReverseProxyDocumentFilterConfig> reverseProxyDocumentFilterConfigOptions)
-                                    : IConfigureOptions<SwaggerGenOptions>
+public class ConfigureSwaggerOptions : IConfigureOptions<SwaggerGenOptions>
 {
-    private readonly ReverseProxyDocumentFilterConfig _reverseProxyDocumentFilterConfig = reverseProxyDocumentFilterConfigOptions.CurrentValue;
+    private readonly ReverseProxyDocumentFilterConfig _reverseProxyDocumentFilterConfig;
+
+    public ConfigureSwaggerOptions(IOptionsMonitor<ReverseProxyDocumentFilterConfig> reverseProxyDocumentFilterConfigOptions)
+    {
+        _reverseProxyDocumentFilterConfig = reverseProxyDocumentFilterConfigOptions.CurrentValue;
+    }
 
     public void Configure(SwaggerGenOptions options)
     {

@@ -2,6 +2,7 @@
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Consul;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using Yarp.ReverseProxy.Configuration;
 using Yarp.ReverseProxy.Health;
 using Yarp.ReverseProxy.LoadBalancing;
@@ -42,6 +43,18 @@ namespace ApiGateway.ServiceDiscovery.Consul
         public IReadOnlyList<RouteConfig> GetRoutes()
         {
             return _proxyConfigProvider.GetConfig().Routes;
+        }
+
+        public string ExportConfigs()
+        {
+            var config = new
+            {
+                Routes = GetRoutes()/* get routes from YARP */,
+                Clusters = GetClusters() /* get clusters from YARP */
+            };
+
+            string json = JsonConvert.SerializeObject(config, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            return json;
         }
 
         public async Task ReloadRoutesAndClustersAsync(CancellationToken cancellationToken)
@@ -107,6 +120,25 @@ namespace ApiGateway.ServiceDiscovery.Consul
                         _logger.LogError(err, $"{svc.Service} route validation error"));
                     continue;
                 }
+
+                var swaggerRoute = new RouteConfig
+                {
+                    ClusterId = svc.Service,
+                    RouteId = $"{svc.Service}-swagger-route",
+
+                    Match = new RouteMatch
+                    {
+                        Path = $"/swagger-json/{svc.Service}/swagger/v1/swagger.json"
+                    },
+
+                    Transforms = new IReadOnlyDictionary<string, string>[]
+                    {
+                        new Dictionary<string, string>
+                        {
+                            ["PathRemovePrefix"] = $"/swagger-json/{svc.Service}"
+                        }
+                    }
+                };
 
                 routes.Add(route);
             }

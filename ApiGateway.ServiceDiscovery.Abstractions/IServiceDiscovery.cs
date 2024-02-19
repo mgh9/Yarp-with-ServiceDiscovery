@@ -9,4 +9,6 @@ public interface IServiceDiscovery
     IReadOnlyList<ClusterConfig> GetClusters();
 
     IReadOnlyList<RouteConfig> GetRoutes();
+
+    string ExportConfigs();
 }
