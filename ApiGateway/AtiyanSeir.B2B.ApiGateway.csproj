@@ -9,7 +9,7 @@
 
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
-		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+		<PackageReference Include="NSwag.AspNetCore" Version="14.0.3" />
 		<PackageReference Include="Yarp.ReverseProxy" Version="2.1.0" />
 		<PackageReference Include="Treyt.Yarp.ReverseProxy.Swagger" Version="3.3.0" />
 	</ItemGroup>

@@ -1,8 +1,6 @@
-using System.Runtime.InteropServices;
-using System.Text.Json;
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpLogging;
+using Microsoft.AspNetCore.Rewrite;
 
 internal class Program
 {
@@ -24,6 +22,7 @@ internal class Program
         app.MapReverseProxy();
 
         app.UseSwaggerIfNotProduction();
+       // app.UseRewriter(CreateSwaggerRewriteOptions());
 
         //app.UseHealthChecks("/status", new HealthCheckOptions
         //{
@@ -56,5 +55,12 @@ internal class Program
         });
 
         app.Run();
+    }
+
+    private static RewriteOptions CreateSwaggerRewriteOptions()
+    {
+        var rewriteOptions = new RewriteOptions();
+        rewriteOptions.AddRedirect("^(|\\|\\s+)$", "/swagger"); // Regex for "/" and "" (whitespace)
+        return rewriteOptions;
     }
 }

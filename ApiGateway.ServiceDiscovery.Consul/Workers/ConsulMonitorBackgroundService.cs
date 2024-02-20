@@ -6,7 +6,7 @@ namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
 
 public class ConsulMonitorBackgroundService : BackgroundService
 {
-    public const int DEFAULT_CONSUL_POLL_INTERVAL_SECONDS = 30;
+    public const int DEFAULT_CONSUL_POLL_INTERVAL_SECONDS = 3000;
 
     private readonly IServiceDiscovery _serviceDiscovery;
     private readonly ILogger<ConsulMonitorBackgroundService> _logger;

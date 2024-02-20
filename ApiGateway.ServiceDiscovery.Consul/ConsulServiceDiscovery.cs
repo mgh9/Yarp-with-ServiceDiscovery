@@ -141,6 +141,7 @@ namespace ApiGateway.ServiceDiscovery.Consul
                 };
 
                 routes.Add(route);
+                routes.Add(swaggerRoute);
             }
 
             return routes;
