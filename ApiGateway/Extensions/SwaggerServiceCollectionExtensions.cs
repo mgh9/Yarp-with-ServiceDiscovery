@@ -65,7 +65,9 @@ internal static class SwaggerServiceCollectionExtensions
         //if (app.Environment.IsProduction())
         //    return;
 
-        app.UseSwagger();
+        app.UseSwagger(x => {
+        
+        });
         //app.MapSwagger( pattern:"asgharrrSwagger/{documentName}/testttt.json",setupAction: x => 
         //{
 
@@ -73,7 +75,7 @@ internal static class SwaggerServiceCollectionExtensions
 
         //app.UseOpenApi();
 
-        //////app.UseSwaggerUI( c =>
+        //////app.UseSwagger( c =>
         //////{
         //////   // c.RouteTemplate = baseApplicationRoute + "/swagger/{documentName}/swagger.json";
 
