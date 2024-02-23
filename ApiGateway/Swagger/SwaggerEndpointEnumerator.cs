@@ -30,8 +30,8 @@ public class SwaggerEndpointEnumerator : IEnumerable<UrlDescriptor>
             var mainRouteOfThisCluster = routesOfThisCluster.Where(x => x.RouteId.Contains("swagger") == false).FirstOrDefault();
             var swaggerRouteOfThisCluster = routesOfThisCluster.Where(x => x.RouteId.Contains("swagger")).FirstOrDefault();
 
-            var swaggerUrlViaGateway1 = "https://192.168.12.112:7219" + swaggerRouteOfThisCluster.Match.Path;
-            var swaggerUrlViaGateway2 = $"https://192.168.12.112:7219{mainRouteOfThisCluster.Match.Path.Replace("/{**remainder}", "")}{swaggerRouteOfThisCluster.Match.Path}";
+            var swaggerUrlViaGateway1 = "https://192.168.0.104:7219" + swaggerRouteOfThisCluster.Match.Path;
+            var swaggerUrlViaGateway2 = $"https://192.168.0.104:7219{mainRouteOfThisCluster.Match.Path.Replace("/{**remainder}", "")}{swaggerRouteOfThisCluster.Match.Path}";
 
 
             yield return new UrlDescriptor

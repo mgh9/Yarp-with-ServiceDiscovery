@@ -1,5 +1,7 @@
 ﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using AtiyanSeir.B2B.ApiGateway.Swagger;
+using Microsoft.Extensions.Options;
+using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Microsoft.Extensions.DependencyInjection;
 //public class CustomOperationFilter : IOperationFilter
@@ -27,29 +29,29 @@ internal static class SwaggerServiceCollectionExtensions
     {
         services.AddEndpointsApiExplorer();
 
-        services.AddOpenApiDocument(config =>
+        //services.AddOpenApiDocument(config =>
+        //{
+        //    config.PostProcess = document =>
+        //    {
+        //        var sdsd = document.BaseUrl;
+        //        var ff = document.DocumentPath;
+        //        var ff3 = document.BasePath;
+
+        //        document.Info.Title = "MYYYY GATEWAYY";
+        //        document.Info.Description = "A simple ASP.NET Core web API";
+        //    };
+        //});
+        //services.AddSwaggerDocument();
+
+
+        services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
+        services.AddSwaggerGen(c =>
         {
-            config.PostProcess = document =>
-            {
-                var sdsd = document.BaseUrl;
-                var ff = document.DocumentPath;
-                var ff3 = document.BasePath;
+            // c.CustomOperationIds(e => "asgharrrrr");
 
-                document.Info.Title = "MYYYY GATEWAYY";
-                document.Info.Description = "A simple ASP.NET Core web API";
-            };
+            //c.SwaggerGeneratorOptions.SwaggerDocs.Add("sds", new OpenApiInfo { Title = "gg" });
+            //c.OperationFilter<CustomOperationFilter>("test1111");
         });
-        services.AddSwaggerDocument();
-
-
-        //services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
-        ////////services.AddSwaggerGen(c =>
-        ////////{
-        ////////   // c.CustomOperationIds(e => "asgharrrrr");
-
-        ////////    //c.SwaggerGeneratorOptions.SwaggerDocs.Add("sds", new OpenApiInfo { Title = "gg" });
-        ////////    //c.OperationFilter<CustomOperationFilter>("test1111");
-        ////////});
     }
 
     /// <summary>
@@ -69,42 +71,42 @@ internal static class SwaggerServiceCollectionExtensions
 
         //});
 
-        app.UseOpenApi();
+        //app.UseOpenApi();
 
-        app.UseSwaggerUi( c =>
-        {
-           // c.RouteTemplate = baseApplicationRoute + "/swagger/{documentName}/swagger.json";
+        //////app.UseSwaggerUI( c =>
+        //////{
+        //////   // c.RouteTemplate = baseApplicationRoute + "/swagger/{documentName}/swagger.json";
 
-            ////////c.PreSerializeFilters.Add((swaggerDoc, httpRequest) =>
-            ////////{
-            ////////    var serviceDiscovery = app.Services.GetRequiredService<IServiceDiscovery>();
-            ////////    var jsoned = serviceDiscovery.ExportConfigs();
+        //////    ////////c.PreSerializeFilters.Add((swaggerDoc, httpRequest) =>
+        //////    ////////{
+        //////    ////////    var serviceDiscovery = app.Services.GetRequiredService<IServiceDiscovery>();
+        //////    ////////    var jsoned = serviceDiscovery.ExportConfigs();
 
-            ////////    //swaggerDoc.Info.
-            ////////    var clusters = serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
+        //////    ////////    //swaggerDoc.Info.
+        //////    ////////    var clusters = serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
 
-            ////////    ////var srvs = new List<OpenApiServer>();
-            ////////    ////foreach (var cluster in clusters)
-            ////////    ////{
-            ////////    ////    //var f = cluster.Destinations.First();
-            ////////    ////    //var o = new OpenApiServer() { Url = f.Value.Address };
-            ////////    ////    ////options.SwaggerEndpoint($"/swagger/{cluster.ClusterId}/swagger.json", cluster.ClusterId);
-            ////////    ////    //swaggerDoc.Servers.Add(o);
+        //////    ////////    ////var srvs = new List<OpenApiServer>();
+        //////    ////////    ////foreach (var cluster in clusters)
+        //////    ////////    ////{
+        //////    ////////    ////    //var f = cluster.Destinations.First();
+        //////    ////////    ////    //var o = new OpenApiServer() { Url = f.Value.Address };
+        //////    ////////    ////    ////options.SwaggerEndpoint($"/swagger/{cluster.ClusterId}/swagger.json", cluster.ClusterId);
+        //////    ////////    ////    //swaggerDoc.Servers.Add(o);
 
 
-            ////////    ////    var op = new OpenApiPathItem();
-            ////////    ////    op.AddOperation(OperationType.Get, new OpenApiOperation() { Summary = "sss" });
-            ////////    ////    swaggerDoc.Paths.Add(cluster.ClusterId, new OpenApiPathItem(op));
-            ////////    ////}
+        //////    ////////    ////    var op = new OpenApiPathItem();
+        //////    ////////    ////    op.AddOperation(OperationType.Get, new OpenApiOperation() { Summary = "sss" });
+        //////    ////////    ////    swaggerDoc.Paths.Add(cluster.ClusterId, new OpenApiPathItem(op));
+        //////    ////////    ////}
 
-            ////////    if (!httpRequest.Headers.ContainsKey("X-Forwarded-Host"))
-            ////////        return;
+        //////    ////////    if (!httpRequest.Headers.ContainsKey("X-Forwarded-Host"))
+        //////    ////////        return;
 
-            ////////    var basePath = "proxy";
-            ////////    var serverUrl = $"{httpRequest.Scheme}://{httpRequest.Headers["X-Forwarded-Host"]}/{basePath}";
-            ////////    swaggerDoc.Servers = new List<OpenApiServer> { new OpenApiServer { Url = serverUrl } };
-            ////////});
-        });
+        //////    ////////    var basePath = "proxy";
+        //////    ////////    var serverUrl = $"{httpRequest.Scheme}://{httpRequest.Headers["X-Forwarded-Host"]}/{basePath}";
+        //////    ////////    swaggerDoc.Servers = new List<OpenApiServer> { new OpenApiServer { Url = serverUrl } };
+        //////    ////////});
+        //////});
 
         app.UseSwaggerUI(options =>
         {
@@ -134,3 +136,13 @@ internal static class SwaggerServiceCollectionExtensions
         });
     }
 }
+
+
+//tuye ye// branch e dg:
+//       // ya kollan app e dg: az appsettings bekhun route o cluster ro ba 
+//    // library e Treyt baraye YARP.
+//    // aval khali bashe, badesh az Consul bkhun beriz tuye Appsettings bebin change apply mishe tuye runtime
+
+
+//    ya
+    // interceptor middleware bezan say kon bekhune response e tolid shode ro va taghiresh bedi

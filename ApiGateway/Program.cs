@@ -1,3 +1,4 @@
+using AtiyanSeir.B2B.ApiGateway.Extensions;
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Rewrite;
@@ -16,6 +17,8 @@ internal class Program
         builder.Services.AddCustomReverseProxy(builder.Configuration);
 
         var app = builder.Build();
+        
+        app.UseSwaggerBaseUrlMiddleware("https://192.168.0.104:7219");
 
         app.UseHttpLogging();
         app.UseRouting();
