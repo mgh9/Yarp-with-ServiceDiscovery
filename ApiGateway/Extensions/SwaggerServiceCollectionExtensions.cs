@@ -1,49 +1,13 @@
 ﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using AtiyanSeir.B2B.ApiGateway.Swagger;
-using Microsoft.Extensions.Options;
-using Swashbuckle.AspNetCore.SwaggerGen;
 
 namespace Microsoft.Extensions.DependencyInjection;
-//public class CustomOperationFilter : IOperationFilter
-//{
-//    private readonly string tp;
-
-//    public CustomOperationFilter(string tp)
-//    {
-//        this.tp = tp;
-//    }
-
-//    public void Apply(OpenApiOperation operation, OperationFilterContext context)
-//    {
-//        // Modify the base URL for operations
-//        operation.Servers = new List<OpenApiServer>
-//        {
-//            new() { Url = "https://example.com/api" } // Change this URL to your desired base URL
-//        };
-//    }
-//}
 
 internal static class SwaggerServiceCollectionExtensions
 {
     internal static void AddCustomSwagger(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
-
-        //services.AddOpenApiDocument(config =>
-        //{
-        //    config.PostProcess = document =>
-        //    {
-        //        var sdsd = document.BaseUrl;
-        //        var ff = document.DocumentPath;
-        //        var ff3 = document.BasePath;
-
-        //        document.Info.Title = "MYYYY GATEWAYY";
-        //        document.Info.Description = "A simple ASP.NET Core web API";
-        //    };
-        //});
-        //services.AddSwaggerDocument();
-
-
         //services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
         services.AddSwaggerGen(c =>
         {
@@ -123,7 +87,7 @@ internal static class SwaggerServiceCollectionExtensions
             ////}
             //options..RoutePrefix = "/asgharrrrrrr22";
 
-            options.DocumentTitle = "AtiyanSeir API Gateway";
+            options.DocumentTitle = "AtiyanSeir B2B API Gateway";
             var serviceDiscovery = app.Services.GetRequiredService<IServiceDiscovery>();
             var httpContext = app.Services.GetRequiredService<IHttpContextAccessor>();
 
@@ -141,13 +105,3 @@ internal static class SwaggerServiceCollectionExtensions
         });
     }
 }
-
-
-//tuye ye// branch e dg:
-//       // ya kollan app e dg: az appsettings bekhun route o cluster ro ba 
-//    // library e Treyt baraye YARP.
-//    // aval khali bashe, badesh az Consul bkhun beriz tuye Appsettings bebin change apply mishe tuye runtime
-
-
-//    ya
-// interceptor middleware bezan say kon bekhune response e tolid shode ro va taghiresh bedi
