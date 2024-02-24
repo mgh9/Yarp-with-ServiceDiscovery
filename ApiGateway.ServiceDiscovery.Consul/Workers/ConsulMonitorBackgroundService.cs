@@ -1,4 +1,5 @@
 ﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -10,11 +11,18 @@ public class ConsulMonitorBackgroundService : BackgroundService
 
     private readonly IServiceDiscovery _serviceDiscovery;
     private readonly ILogger<ConsulMonitorBackgroundService> _logger;
+    private readonly IConfiguration _configuration;
 
-    public ConsulMonitorBackgroundService(IServiceDiscovery serviceDiscovery, ILogger<ConsulMonitorBackgroundService> logger)
+    private readonly int _reloadIntervalInSeconds;
+
+    public ConsulMonitorBackgroundService(IServiceDiscovery serviceDiscovery, ILogger<ConsulMonitorBackgroundService> logger
+        , IConfiguration configuration)
     {
         _serviceDiscovery = serviceDiscovery;
         _logger = logger;
+        _configuration = configuration;
+
+        _reloadIntervalInSeconds = _configuration.GetValue<int>("ConsulServiceDiscovery:ReloadRoutesAndClusters:IntervalSeconds");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -25,8 +33,8 @@ public class ConsulMonitorBackgroundService : BackgroundService
             await _serviceDiscovery.ReloadRoutesAndClustersAsync(stoppingToken);
             _logger.LogInformation("Route configs (routes/clusters) from Consul ServiceDiscovery reloaded.");
 
-            _logger.LogDebug("Next reloading in {PollSeconds} seconds", DEFAULT_CONSUL_POLL_INTERVAL_SECONDS);
-            await Task.Delay(TimeSpan.FromSeconds(DEFAULT_CONSUL_POLL_INTERVAL_SECONDS), stoppingToken);
+            _logger.LogInformation("Next reloading in {PollSeconds} seconds", _reloadIntervalInSeconds);
+            await Task.Delay(TimeSpan.FromSeconds(_reloadIntervalInSeconds), stoppingToken);
         }
     }
 }

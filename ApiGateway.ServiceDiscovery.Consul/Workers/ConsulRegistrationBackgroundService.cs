@@ -4,6 +4,7 @@ using Consul;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using static AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.ConsulServiceDiscoveryOptions;
 
 namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
 
@@ -118,7 +119,7 @@ internal class ConsulRegistrationBackgroundService : BackgroundService
 
         var dnsHostName = Dns.GetHostName();
         var hostname = await Dns.GetHostEntryAsync(dnsHostName, stoppingToken);
-        //_serviceRegistration.Address = //$"http://192.168.0.104";
+        //_serviceRegistration.Address = //$"http://192.168.12.112";
 
         return $"http://{hostname.HostName}";
     }

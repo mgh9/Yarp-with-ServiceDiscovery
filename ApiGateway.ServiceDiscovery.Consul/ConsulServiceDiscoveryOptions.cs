@@ -4,12 +4,16 @@ public class ConsulServiceDiscoveryOptions
 {
     public ConsulClientOptions ConsulClient { get; set; }
     public ServiceRegistrationOptions ServiceRegistration { get; set; }
-    public string[] Tags { get; set; }
 
     public class ConsulClientOptions
     {
+        public ConsulClientOptions(string host, string? datacenter)
+        {
+            Host = host;
+            Datacenter = datacenter;
+        }
         public string Host { get; set; }
-        public string Datacenter { get; set; }
+        public string? Datacenter { get; set; }
     }
 
     public class ServiceRegistrationOptions
@@ -19,5 +23,6 @@ public class ConsulServiceDiscoveryOptions
         public int Port { get; set; }
 
         public Dictionary<string, string> Meta { get; set; }
+        public string[] Tags { get; set; }
     }
 }

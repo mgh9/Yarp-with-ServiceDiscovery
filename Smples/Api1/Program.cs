@@ -8,8 +8,16 @@ builder.Services.AddControllers();
 builder.Services.AddHealthChecks()
                     .AddCheck<MainHealthCheck>("Sample");
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-builder.Services.RegisterWithConsulServiceDiscovery(builder.Configuration.GetSection("ConsulServiceDiscovery"));
+
+builder.Services.AddSwaggerGen(opt => opt.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+{
+    Title = "serviceeee1 Order titleeee",
+    Description = "Description of the service 11 orderrr"
+}));
+
+var host = builder.Configuration.GetValue<string>("ConsulServiceDiscovery:ConsulClient:Host") ?? throw new ArgumentException("Consul server address or not found!");
+var datacenter = builder.Configuration.GetValue<string>("ConsulServiceDiscovery:ConsulClient:Datacenter") ?? string.Empty;
+builder.Services.RegisterWithConsulServiceDiscovery(new AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.ConsulServiceDiscoveryOptions.ConsulClientOptions(host, datacenter));
 
 var app = builder.Build();
 
@@ -19,7 +27,11 @@ app.UseCors(builder => builder.AllowAnyOrigin());
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(x =>
+    {
+        //x.SwaggerEndpoint("/swagger/v1/swagger.json", "MYYYY APP");
+        x.DocumentTitle = "asgharrr";
+    });
 }
 
 app.MapControllers();

@@ -14,7 +14,6 @@ namespace ApiGateway.ServiceDiscovery.Consul
     public partial class ConsulServiceDiscovery : IServiceDiscovery
     {
         private readonly ILogger<ConsulServiceDiscovery> _logger;
-
         private readonly IConsulClient _consulClient;
         private readonly IConfigValidator _proxyConfigValidator;
         private readonly InMemoryConfigProvider _proxyConfigProvider;
@@ -49,28 +48,41 @@ namespace ApiGateway.ServiceDiscovery.Consul
         {
             var config = new
             {
-                Routes = GetRoutes()/* get routes from YARP */,
-                Clusters = GetClusters() /* get clusters from YARP */
+                Routes = GetRoutes(),
+                Clusters = GetClusters()
             };
 
-            string json = JsonConvert.SerializeObject(config, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
-            return json;
+            return JsonConvert.SerializeObject(config, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
         }
 
         public async Task ReloadRoutesAndClustersAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Updating route configs (routes/clusters) from Consul...");
-            var serviceResult = await _consulClient.Agent.Services(cancellationToken);
 
-            if (serviceResult.StatusCode == HttpStatusCode.OK)
+            try
             {
-                var routes = await ExtractRoutes(serviceResult);
-                var clusters = await ExtractClusters(serviceResult);
+                var serviceResult = await _consulClient.Agent.Services(cancellationToken);
 
-                _proxyConfigProvider.Update(routes, clusters);
+                if (serviceResult.StatusCode == HttpStatusCode.OK)
+                {
+                    var routes = await ExtractRoutes(serviceResult);
+                    var clusters = await ExtractClusters(serviceResult);
+
+                    _proxyConfigProvider.Update(routes, clusters);
+
+                    _logger.LogInformation("Proxy configs (routes/clusters) reloaded");
+                    _logger.LogInformation("New Routes count: {routesCount} and new Clusters count:{clustersCount}", routes.Count, clusters.Count);
+                }
+                else
+                {
+                    _logger.LogError("Updating proxy configs failed with status code: {statusCode} - {response}", serviceResult.StatusCode, serviceResult.Response);
+                }
             }
-
-            _logger.LogInformation("Proxy configs (routes/clusters) reloaded");
+            catch (Exception ex)
+            {
+                _logger.LogCritical(ex, "Updating proxy configs failed with exception : {error}", ex);
+                throw;
+            }
         }
 
         private async Task<List<RouteConfig>> ExtractRoutes(QueryResult<Dictionary<string, AgentService>> serviceResult)
@@ -78,140 +90,201 @@ namespace ApiGateway.ServiceDiscovery.Consul
             var serviceMapping = serviceResult.Response;
             var routes = new List<RouteConfig>();
 
-            foreach (var (key, svc) in serviceMapping)
+            foreach (var (key, consulService) in serviceMapping)
             {
-                if (!svc.Meta.TryGetValue("yarp_is_enabled", out string? isYarpEnabled) ||
-                    !isYarpEnabled.Equals("true", StringComparison.InvariantCulture))
+                if (!IsYarpEnabledForThisConsulService(consulService))
                     continue;
 
-                // ignore duplicate service type
-                if (routes.Any(r => r.ClusterId == svc.Service))
+                // ignore duplicate service type - route
+                if (IsRouteAlreadyAddedToCollection(routes, consulService))
                     continue;
 
-                var route = new RouteConfig
+                var mainRoute = FetchRouteDefinitionFromConsulService(consulService);
+                if (!await IsValidYarpRouteAsync(mainRoute, consulService.Service))
                 {
-                    ClusterId = svc.Service,
-                    RouteId = $"{svc.Service}-route",
-
-                    Match = new RouteMatch
-                    {
-                        Path = svc.Meta.TryGetValue("yarp_route_match_path", out var yarpRouteMatchPath)
-                            ? yarpRouteMatchPath
-                            : string.Empty
-                    },
-
-                    Transforms = new IReadOnlyDictionary<string, string>[]
-                    {
-                        new Dictionary<string, string>
-                        {
-                            ["PathPattern"] = svc.Meta.TryGetValue("yarp_route_transform_path", out var yarpRouteTransformPath)
-                                    ? yarpRouteTransformPath
-                                    : string.Empty
-                        }
-                    }
-                };
-
-                var routeErrs = await _proxyConfigValidator.ValidateRouteAsync(route);
-                if (routeErrs.Any())
-                {
-                    _logger.LogError("Errors found when trying to generate routes for {Service}",
-                        svc.Service);
-                    routeErrs.ToList().ForEach(err =>
-                        _logger.LogError(err, $"{svc.Service} route validation error"));
                     continue;
                 }
 
-                var swaggerRoute = new RouteConfig
+                var swaggerRoute = FetchSwaggerRouteDefinitionFromConsulService(consulService);
+                if (!await IsValidYarpRouteAsync(swaggerRoute, consulService.Service))
                 {
-                    ClusterId = svc.Service,
-                    RouteId = $"{svc.Service}-swagger-route",
+                    continue;
+                }
 
-                    Match = new RouteMatch
-                    {
-                        Path = $"/swagger-json/{svc.Service}/swagger/v1/swagger.json"
-                    },
-
-                    Transforms = new IReadOnlyDictionary<string, string>[]
-                    {
-                        new Dictionary<string, string>
-                        {
-                            ["PathRemovePrefix"] = $"/swagger-json/{svc.Service}"
-                        }
-                    }
-                };
-
-                routes.Add(route);
+                routes.Add(mainRoute);
                 routes.Add(swaggerRoute);
             }
 
             return routes;
         }
 
+        private static bool IsRouteAlreadyAddedToCollection(List<RouteConfig> routes, AgentService consulService)
+        {
+            return routes.Any(r => r.ClusterId == consulService.Service);
+        }
+
+        private static bool IsYarpEnabledForThisConsulService(AgentService consulService)
+        {
+            return consulService.Meta.TryGetValue("yarp_is_enabled", out string? isYarpEnabled)
+                && isYarpEnabled.Equals("true", StringComparison.InvariantCulture);
+        }
+
+        private async Task<bool> IsValidYarpRouteAsync(RouteConfig route, string consulServiceName)
+        {
+            var routeErrs = await _proxyConfigValidator.ValidateRouteAsync(route);
+
+            if (routeErrs.Any())
+            {
+                _logger.LogError("Errors found when trying to generate routes for {Service}", consulServiceName);
+                routeErrs.ToList().ForEach(err => _logger.LogError(err, $"{consulServiceName} route validation error"));
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private static RouteConfig FetchSwaggerRouteDefinitionFromConsulService(AgentService svc)
+        {
+            return new RouteConfig
+            {
+                ClusterId = svc.Service,
+                RouteId = $"{svc.Service}-swagger-route",
+
+                Match = new RouteMatch
+                {
+                    Path = $"/swagger-json/{svc.Service}/swagger/v1/swagger.json"
+                },
+
+                Transforms = new IReadOnlyDictionary<string, string>[]
+                {
+                        new Dictionary<string, string>
+                        {
+                            ["PathRemovePrefix"] = $"/swagger-json/{svc.Service}"
+                        }
+                }
+            };
+        }
+
+        private static RouteConfig FetchRouteDefinitionFromConsulService(AgentService svc)
+        {
+            return new RouteConfig
+            {
+                ClusterId = svc.Service,
+                RouteId = $"{svc.Service}-route",
+
+                Match = new RouteMatch
+                {
+                    Path = svc.Meta.TryGetValue("yarp_route_match_path", out var yarpRouteMatchPath)
+                                                    ? yarpRouteMatchPath
+                                                    : string.Empty
+                },
+
+                Transforms = new IReadOnlyDictionary<string, string>[]
+                                {
+                                    new Dictionary<string, string>
+                                    {
+                                        ["PathPattern"] = svc.Meta.TryGetValue("yarp_route_transform_path", out var yarpRouteTransformPath)
+                                                ? yarpRouteTransformPath
+                                                : string.Empty
+                                    }
+                                }
+            };
+        }
+
         private async Task<List<ClusterConfig>> ExtractClusters(QueryResult<Dictionary<string, AgentService>> serviceResult)
         {
-            // TODO: add validation
-
             var clusters = new Dictionary<string, ClusterConfig>();
             var serviceMapping = serviceResult.Response;
 
-            foreach (var (key, svc) in serviceMapping)
+            foreach (var (key, consulService) in serviceMapping)
             {
-                _ = svc.Meta.TryGetValue("service_health_endpoint", out string? serviceHealthCheckEndpoint);
-                _ = svc.Meta.TryGetValue("service_health_check_seconds", out string? serviceHealthCheckSeconds);
-                _ = svc.Meta.TryGetValue("service_health_timeout_seconds", out string? serviceHealthTimeoutSeconds);
+                _ = consulService.Meta.TryGetValue("service_health_endpoint", out string? serviceHealthCheckEndpoint);
+                _ = consulService.Meta.TryGetValue("service_health_check_seconds", out string? serviceHealthCheckSeconds);
+                _ = consulService.Meta.TryGetValue("service_health_timeout_seconds", out string? serviceHealthTimeoutSeconds);
 
-                var cluster = clusters.TryGetValue(svc.Service, out var existingCluster)
-                    ? existingCluster
-                    : new ClusterConfig
-                    {
-                        ClusterId = svc.Service,
-                        LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
-                        ////////HealthCheck = new()
-                        ////////{
-                        ////////    Active = new ActiveHealthCheckConfig
-                        ////////    {
-                        ////////        Enabled = true,
-                        ////////        Interval = TimeSpan.FromSeconds(int.Parse(serviceHealthCheckSeconds)),
-                        ////////        Timeout = TimeSpan.FromSeconds(int.Parse(serviceHealthTimeoutSeconds)),
-                        ////////        Policy = HealthCheckConstants.ActivePolicy.ConsecutiveFailures,
-                        ////////        Path = serviceHealthCheckEndpoint
-                        ////////    }
-                        ////////},
+                ClusterConfig cluster = GenerateYarpClusterOrGetExistingOne(clusters, consulService);
 
-                        Metadata = new Dictionary<string, string>
-                        {
-                            {
-                                ConsecutiveFailuresHealthPolicyOptions.ThresholdMetadataName, "5"
-                            }
-                        }
-                    };
-
+                // If it's a new cluster, an empty Destination collection added, or if the cluster already exists, get its destinations collection
                 var destination = cluster.Destinations is null
                                         ? new Dictionary<string, DestinationConfig>()
                                         : new Dictionary<string, DestinationConfig>(cluster.Destinations);
 
-                var address = $"{svc.Address}:{svc.Port}";
+                // service cluster destination full address
+                var address = $"{consulService.Address}:{consulService.Port}";
 
-                destination.Add(svc.ID, new DestinationConfig { Address = address, Health = address });
+                destination.Add(consulService.ID, new DestinationConfig { Address = address, Health = address });
 
+                // append new destination with the previous one
                 var newCluster = cluster with
                 {
                     Destinations = destination
                 };
 
+                if (!await IsValidYarpClusterAsync(newCluster, consulService.Service))
+                {
+                    continue;
+                }
+
                 var clusterErrs = await _proxyConfigValidator.ValidateClusterAsync(newCluster);
                 if (clusterErrs.Any())
                 {
-                    _logger.LogError("Errors found when creating clusters for {Service}", svc.Service);
-                    clusterErrs.ToList().ForEach(err => _logger.LogError(err, $"{svc.Service} cluster validation error"));
+                    _logger.LogError("Errors found when creating clusters for {Service}", consulService.Service);
+                    clusterErrs.ToList().ForEach(err => _logger.LogError(err, $"{consulService.Service} cluster validation error"));
 
                     continue;
                 }
 
-                clusters[svc.Service] = newCluster;
+                clusters[consulService.Service] = newCluster;
             }
 
             return clusters.Values.ToList();
+        }
+
+        private async Task<bool> IsValidYarpClusterAsync(ClusterConfig cluster, string consulServiceName)
+        {
+            var clusterErrs = await _proxyConfigValidator.ValidateClusterAsync(cluster);
+
+            if (clusterErrs.Any())
+            {
+                _logger.LogError("Errors found when trying to generate clusters for {Service}", consulServiceName);
+                clusterErrs.ToList().ForEach(err => _logger.LogError(err, $"{consulServiceName} cluster validation error"));
+
+                return false;
+            }
+
+            return true;
+        }
+
+        private static ClusterConfig GenerateYarpClusterOrGetExistingOne(Dictionary<string, ClusterConfig> clusters, AgentService service)
+        {
+            var generatedClusterOrExistingOne = clusters.TryGetValue(service.Service, out var existingCluster)
+                                            ? existingCluster
+                                            : new ClusterConfig
+                                            {
+                                                ClusterId = service.Service,
+                                                LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
+                                                ////////HealthCheck = new()
+                                                ////////{
+                                                ////////    Active = new ActiveHealthCheckConfig
+                                                ////////    {
+                                                ////////        Enabled = true,
+                                                ////////        Interval = TimeSpan.FromSeconds(int.Parse(serviceHealthCheckSeconds)),
+                                                ////////        Timeout = TimeSpan.FromSeconds(int.Parse(serviceHealthTimeoutSeconds)),
+                                                ////////        Policy = HealthCheckConstants.ActivePolicy.ConsecutiveFailures,
+                                                ////////        Path = serviceHealthCheckEndpoint
+                                                ////////    }
+                                                ////////},
+
+                                                Metadata = new Dictionary<string, string>
+                                                {
+                                                    {
+                                                        ConsecutiveFailuresHealthPolicyOptions.ThresholdMetadataName, "5"
+                                                    }
+                                                }
+                                            };
+
+            return generatedClusterOrExistingOne;
         }
     }
 }

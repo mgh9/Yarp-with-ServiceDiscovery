@@ -1,9 +1,9 @@
 using System.Text;
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using AtiyanSeir.B2B.ApiGateway.Swagger;
-using Microsoft.AspNetCore.HttpLogging;
 using Microsoft.AspNetCore.Rewrite;
-using Swashbuckle.AspNetCore.Swagger;
+
+namespace AtiyanSeir.B2B.ApiGateway;
 
 internal class Program
 {
@@ -11,17 +11,29 @@ internal class Program
     {
         var builder = WebApplication.CreateBuilder(args);
 
-        builder.Services.AddHttpLogging(logging => { logging.LoggingFields = HttpLoggingFields.All; });
+        //builder.Services.AddLogging(opt =>
+        // {
+        //     opt.AddConsole(c =>
+        //     {
+        //         c.TimestampFormat = "[HH:mm:ss] ";
+        //     });
+        // });
+
+        builder.Services.AddHttpContextAccessor();
+        //builder.Services.AddHttpLogging(logging => { logging.LoggingFields = HttpLoggingFields.Request; });
         builder.Services.AddHealthChecks();
 
-        builder.Services.AddConsulClient(builder.Configuration.GetSection("ConsulServiceDiscovery:Client"));
+        var host = builder.Configuration.GetValue<string>("ConsulServiceDiscovery:ConsulClient:Host") ?? throw new ArgumentException("Consul server address or not found!");
+        var datacenter = builder.Configuration.GetValue<string>("ConsulServiceDiscovery:ConsulClient:Datacenter") ?? string.Empty;
+        builder.Services.AddConsulClient(new AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.ConsulServiceDiscoveryOptions.ConsulClientOptions(host, datacenter));
+
         builder.Services.AddCustomSwagger();
-        builder.Services.AddCustomReverseProxy(builder.Configuration);
+        builder.Services.AddCustomReverseProxy();
 
         var app = builder.Build();
-        
 
-        app.UseHttpLogging();
+
+        //app.UseHttpLogging();
         app.UseRouting();
         app.MapReverseProxy();
 

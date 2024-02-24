@@ -1,5 +1,5 @@
-ConsulTester\Smples\Api1>dotnet run .\Api1.csproj --urls "https://192.168.0.104:7091" -- ConsulServiceDiscovery:ServiceRegistration:Port=7091
-ConsulTester\Smples\Api1>dotnet run .\Api1.csproj --urls "https://192.168.0.104:7011" -- ConsulServiceDiscovery:ServiceRegistration:Port=7011
+ConsulTester\Smples\Api1>dotnet run .\Api1.csproj --urls "https://192.168.12.112:7091" -- ConsulServiceDiscovery:ServiceRegistration:Port=7091
+ConsulTester\Smples\Api1>dotnet run .\Api1.csproj --urls "https://192.168.12.112:7011" -- ConsulServiceDiscovery:ServiceRegistration:Port=7011
 
 
 

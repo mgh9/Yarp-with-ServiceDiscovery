@@ -44,7 +44,7 @@ internal static class SwaggerServiceCollectionExtensions
         //services.AddSwaggerDocument();
 
 
-        services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
+        //services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
         services.AddSwaggerGen(c =>
         {
             // c.CustomOperationIds(e => "asgharrrrr");
@@ -65,8 +65,9 @@ internal static class SwaggerServiceCollectionExtensions
         //if (app.Environment.IsProduction())
         //    return;
 
-        app.UseSwagger(x => {
-        
+        app.UseSwagger(x =>
+        {
+
         });
         //app.MapSwagger( pattern:"asgharrrSwagger/{documentName}/testttt.json",setupAction: x => 
         //{
@@ -123,8 +124,10 @@ internal static class SwaggerServiceCollectionExtensions
             //options..RoutePrefix = "/asgharrrrrrr22";
 
             options.DocumentTitle = "AtiyanSeir API Gateway";
-            var serviceDiscovery = app.Services.GetService<IServiceDiscovery>();
-            options.ConfigObject.Urls = new SwaggerEndpointEnumerator(serviceDiscovery);
+            var serviceDiscovery = app.Services.GetRequiredService<IServiceDiscovery>();
+            var httpContext = app.Services.GetRequiredService<IHttpContextAccessor>();
+
+            options.ConfigObject.Urls = new SwaggerEndpointEnumerator(serviceDiscovery, httpContext, app.Logger);
             //options.ConfigObject.= new SwaggerEndpointEnumerator(serviceDiscovery);
 
             ////////var clusters = serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
@@ -147,4 +150,4 @@ internal static class SwaggerServiceCollectionExtensions
 
 
 //    ya
-    // interceptor middleware bezan say kon bekhune response e tolid shode ro va taghiresh bedi
+// interceptor middleware bezan say kon bekhune response e tolid shode ro va taghiresh bedi

@@ -1,10 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Options;
+﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
 //    using Yarp.ReverseProxy.Swagger;
 
 namespace AtiyanSeir.B2B.ApiGateway.Swagger
@@ -13,11 +8,14 @@ namespace AtiyanSeir.B2B.ApiGateway.Swagger
     public class MySwaggerBaseUrlMiddleware
     {
         private readonly RequestDelegate _next;
+        private readonly IServiceDiscovery _serviceDiscovery;
+
         //private readonly IOptionsMonitor<ReverseProxyDocumentFilterConfig> _config;
 
-        public MySwaggerBaseUrlMiddleware(RequestDelegate next)//, IOptionsMonitor<ReverseProxyDocumentFilterConfig> config)
+        public MySwaggerBaseUrlMiddleware(RequestDelegate next,IServiceDiscovery serviceDiscovery)//, IOptionsMonitor<ReverseProxyDocumentFilterConfig> config)
         {
             _next = next;
+            this._serviceDiscovery = serviceDiscovery;
             //     _config = config;
         }
 
@@ -53,11 +51,56 @@ namespace AtiyanSeir.B2B.ApiGateway.Swagger
         //    }
         //}
 
+        private List<List<string>> F1(JArray array)
+        {
+            List<List<string>> result = new();
+
+            foreach (JObject pathObj in array.SelectTokens("paths").AsJEnumerable())
+            {
+                Dictionary<string, JObject> pathDict = pathObj.ToObject<Dictionary<string, JObject>>();
+
+                foreach (KeyValuePair<string, JObject> pathKvp in pathDict)
+                {
+                    var path = pathKvp.Key;
+                    var methodDict = pathKvp.Value.ToObject<Dictionary<string, JObject>>();
+
+                    foreach (KeyValuePair<string, JObject> methodKvp in methodDict)
+                    {
+                        string method = methodKvp.Key;
+                        string summary = (string)methodKvp.Value.SelectToken("summary");
+                        string tag = (string)methodKvp.Value.SelectToken("tags").AsEnumerable().First();
+
+                        result.Add(new List<string> { summary, tag, path, method });
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private static bool IsSwaggerUi(PathString pathString)
+        {
+            var s=  pathString.ToUriComponent().EndsWith("swagger.json", StringComparison.OrdinalIgnoreCase);
+            return s;
+            //return pathString.StartsWithSegments("/swagger");
+        }
+
         public async Task Invoke(HttpContext context)
         {
+            if (!IsSwaggerUi(context.Request.Path))
+            {
+                await _next(context);
+                return;
+            }
+
             var originBody = context.Response.Body;
+
             try
             {
+                var routes = _serviceDiscovery.GetRoutes();
+                var clusters = _serviceDiscovery.GetClusters();
+                var conf = _serviceDiscovery.ExportConfigs();
+
                 var memStream = new MemoryStream();
                 context.Response.Body = memStream;
 
@@ -66,11 +109,40 @@ namespace AtiyanSeir.B2B.ApiGateway.Swagger
                 memStream.Position = 0;
                 var responseBody = new StreamReader(memStream).ReadToEnd();
 
-            //https://stackoverflow.com/questions/44508028/modify-middleware-response
-sample// api01 ro modify kard okeye...automate kon
+                //https://stackoverflow.com/questions/44508028/modify-middleware-response
+                var arr = context.Request.Path.Value.Split('/');
+                var clusterName = arr[2]!;
+                var c = clusters.SingleOrDefault(x => x.ClusterId == clusterName);
 
-                //Custom logic to modify response
-                responseBody = responseBody.Replace("/GetApi", "/api01/GetApi", StringComparison.InvariantCultureIgnoreCase);
+                var routeId = $"{clusterName}-route"!;
+                var mainRoute = routes.SingleOrDefault(x => x.RouteId == routeId);
+                var routePathWithoutReminder = mainRoute.Match.Path.Replace("/{**remainder}", "");
+
+
+                JObject jObject = JObject.Parse(responseBody);
+                var apiName = jObject["info"]["title"].ToString();
+
+                // Get the paths object
+                JObject paths = (JObject)jObject["paths"];
+
+                // Create a new paths object
+                JObject newPaths = new JObject();
+
+                foreach (JProperty property in paths.Properties())
+                {
+                    string newName = $"{routePathWithoutReminder}{property.Name}";
+
+                    newPaths.Add(newName, property.Value);
+                }
+
+                jObject["paths"] = newPaths;
+                string modifiedJson = jObject.ToString();
+
+                Console.WriteLine(modifiedJson);
+
+                responseBody = modifiedJson;
+
+
 
                 var memoryStreamModified = new MemoryStream();
                 var sw = new StreamWriter(memoryStreamModified);

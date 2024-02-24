@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Yarp.ReverseProxy.Configuration;
@@ -9,10 +8,14 @@ namespace AtiyanSeir.B2B.ApiGateway.Swagger;
 public class SwaggerEndpointEnumerator : IEnumerable<UrlDescriptor>
 {
     private readonly IServiceDiscovery _serviceDiscovery;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly ILogger _logger;
 
-    public SwaggerEndpointEnumerator(IServiceDiscovery serviceDiscovery)
+    public SwaggerEndpointEnumerator(IServiceDiscovery serviceDiscovery, IHttpContextAccessor httpContextAccessor, ILogger logger)
     {
         _serviceDiscovery = serviceDiscovery;
+        this._httpContextAccessor = httpContextAccessor;
+        this._logger = logger;
     }
 
     public IEnumerator<UrlDescriptor> GetEnumerator()
@@ -20,27 +23,45 @@ public class SwaggerEndpointEnumerator : IEnumerable<UrlDescriptor>
         var routes = _serviceDiscovery?.GetRoutes() ?? new List<RouteConfig>();
         var clusters = _serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
 
-        var jsoned = _serviceDiscovery?.ExportConfigs();
+        string serverAddress = GetServerAddress();
+        _logger.LogDebug("Reverse proxy server address is : `{address}`", serverAddress);
 
+        _logger.LogDebug("Enumerating {count} clusters to generating swagger documents...", clusters.Count);
         foreach (var clusterItem in clusters)
         {
-            var firstDest = clusterItem.Destinations.First();
+            var firstDestinationCluster = clusterItem.Destinations?.FirstOrDefault();
+            if (firstDestinationCluster is null)
+            {
+                _logger.LogDebug("Cluster `{clusterItem.ClusterId}` has no destination", clusterItem.ClusterId);
+                continue;
+            }
 
             var routesOfThisCluster = routes.Where(x => x.ClusterId == clusterItem.ClusterId).ToList();
-            var mainRouteOfThisCluster = routesOfThisCluster.Where(x => x.RouteId.Contains("swagger") == false).FirstOrDefault();
             var swaggerRouteOfThisCluster = routesOfThisCluster.Where(x => x.RouteId.Contains("swagger")).FirstOrDefault();
 
-            var swaggerUrlViaGateway1 = "https://192.168.0.104:7219" + swaggerRouteOfThisCluster.Match.Path;
-            var swaggerUrlViaGateway2 = $"https://192.168.0.104:7219{mainRouteOfThisCluster.Match.Path.Replace("/{**remainder}", "")}{swaggerRouteOfThisCluster.Match.Path}";
+            if (swaggerRouteOfThisCluster is null)
+            {
+                _logger.LogWarning("There is no valid swagger route address for this cluster (`{clusterId}`) to generate swagger document", clusterItem.ClusterId);
+                continue;
+            }
 
+            var originalApiSwaggerUrlViaServiceProxy = serverAddress + swaggerRouteOfThisCluster.Match.Path;
+            _logger.LogDebug("Swagger url of original route for the clusterId `{clusterId}` is valid, swagger url is: `{apiSwaggerUrl}`", clusterItem.ClusterId, originalApiSwaggerUrlViaServiceProxy);
 
             yield return new UrlDescriptor
             {
                 Name = clusterItem.ClusterId,
-                Url = swaggerUrlViaGateway1
-                //Url = firstDest.Value.Address + "/swagger/v1/swagger.json" //"https://localhost:7094/swagger/v1/swagger.json"
+                Url = originalApiSwaggerUrlViaServiceProxy
             };
         }
+    }
+
+    private string GetServerAddress()
+    {
+        var host = _httpContextAccessor.HttpContext.Request.Host.ToString();
+        var serverAddress = $"{_httpContextAccessor.HttpContext.Request.Scheme}://{host}";
+
+        return serverAddress;
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
