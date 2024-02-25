@@ -37,6 +37,9 @@ public static class Endpoints
                     OS = RuntimeInformation.OSDescription + " - " + RuntimeInformation.OSArchitecture,
                 });
 
+                await Console.Out.WriteLineAsync("HEALTHHHH check from : " + context.Request.HttpContext.Connection.RemoteIpAddress +
+                    ":" + context.Connection.RemotePort);
+
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync(json);
             }

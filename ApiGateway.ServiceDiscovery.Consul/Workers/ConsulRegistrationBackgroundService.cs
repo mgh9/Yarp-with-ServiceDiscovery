@@ -1,24 +1,25 @@
 ﻿using System.Net;
 using System.Text.Json;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.Exceptions;
 using Consul;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using static AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.ConsulServiceDiscoveryOptions;
 
 namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
 
-internal class ConsulRegistrationBackgroundService : BackgroundService
+internal partial class ConsulRegistrationBackgroundService : BackgroundService
 {
     private readonly IConsulClient _consulClient;
     private readonly ILogger<ConsulRegistrationBackgroundService> _logger;
     private readonly IConfigurationSection _appRegistrationConfig;
     private readonly IConfigurationSection _appRegistrationConfigMeta;
-    private AgentServiceRegistration? _serviceRegistration;
+
+    private AgentServiceRegistration? _consulServiceRegistration;
 
     public ConsulRegistrationBackgroundService(IConsulClient consulClient
-                    , IConfiguration configuration
-                    , ILogger<ConsulRegistrationBackgroundService> logger)
+                                                , IConfiguration configuration
+                                                , ILogger<ConsulRegistrationBackgroundService> logger)
     {
         _consulClient = consulClient;
         _appRegistrationConfig = configuration.GetRequiredSection("ConsulServiceDiscovery:ServiceRegistration");
@@ -30,110 +31,66 @@ internal class ConsulRegistrationBackgroundService : BackgroundService
     {
         try
         {
-            // Set config values
-            PrepareServiceRegistration();
-
-            // Set unique ID
-            _serviceRegistration!.ID = GenerateUniqueIdForThisInstance();
-            _logger.LogDebug("Service instance unique ID set as : `{ID}`", _serviceRegistration!.ID);
-            
-            _logger.LogDebug("First, deregister the same service[s] (same instance ID) `{ID}` if there is any...", _serviceRegistration!.ID);
-            var deregisterPreviousInstancesOfThisServiceResult = await _consulClient.Agent.ServiceDeregister(_serviceRegistration.ID, stoppingToken);
-            _logger.LogDebug("deregistering same service[s] with `{ID}` result {result}", _serviceRegistration!.ID, deregisterPreviousInstancesOfThisServiceResult.StatusCode);
-
-            // Set hostname
-            _serviceRegistration.Address = await FetchServiceAddressAsync(stoppingToken);
-            _logger.LogInformation("Service address set as : `{Address}`", _serviceRegistration.Address);
-
-            // Health Check
-            _serviceRegistration.Checks = PrepareHealthChecks();
-            var checksAsJson = JsonSerializer.Serialize(_serviceRegistration.Checks);
-            _logger.LogInformation("Health checks set as : `{HealthChecks}`", checksAsJson);
-
-            var result = await _consulClient.Agent.ServiceRegister(_serviceRegistration, stoppingToken);
-            _logger.LogInformation("Service register statusCode : `{result}`", result.StatusCode.ToString());
+            await TryRegisterServiceAsync(stoppingToken);
+        }
+        catch (InvalidServiceRegistrationInfoException iex)
+        {
+            _logger.LogCritical(iex, $"Unable to register service in ServiceRegistry, because of invalid AppSettings configs");
+            throw;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $" Unable to register service");
+            _logger.LogCritical(ex, $"Unable to register service in ServiceRegistry");
         }
-    }
-
-    private AgentServiceCheck[] PrepareHealthChecks()
-    {
-        var serviceAddressUri = new Uri(_serviceRegistration!.Address);
-        var serviceHost = serviceAddressUri.Host;
-        var servicePort = _appRegistrationConfig.GetValue<int>("Port");
-
-        var serviceHealthEndpoint = $"{_serviceRegistration.Address}:{servicePort}{_appRegistrationConfigMeta.GetValue<string>("service_health_endpoint")}";
-        _logger.LogDebug("Service healthCheck : {healthCheck}", serviceHealthEndpoint);
-        var serviceHealthCheckSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_check_seconds");
-        var serviceHealthTimeoutSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_timeout_seconds");
-        var serviceHealthDeregisterSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_deregister_seconds");
-
-        var tcpCheck = new AgentServiceCheck
-        {
-            TCP = $"{serviceHost}:{servicePort}",
-            Interval = TimeSpan.FromSeconds(serviceHealthCheckSeconds),
-            Timeout = TimeSpan.FromSeconds(serviceHealthTimeoutSeconds),
-            DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(serviceHealthDeregisterSeconds),
-        };
-
-        var httpCheck = new AgentServiceCheck
-        {
-            HTTP = serviceHealthEndpoint,
-            Interval = TimeSpan.FromSeconds(serviceHealthCheckSeconds),
-            Timeout = TimeSpan.FromSeconds(serviceHealthTimeoutSeconds),
-            DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(serviceHealthDeregisterSeconds),
-            TLSSkipVerify = true
-        };
-
-        return [tcpCheck, httpCheck];
-    }
-
-    private string GenerateUniqueIdForThisInstance()
-    {
-        var rand = new Random();
-        var instanceId = rand.Next().ToString();
-
-        return $"{_serviceRegistration.Name}-{_serviceRegistration.Port}";
-    }
-
-    private void PrepareServiceRegistration()
-    {
-        _serviceRegistration = new AgentServiceRegistration
-        {
-            Name = _appRegistrationConfig.GetValue<string>("Name"),
-            Port = _appRegistrationConfig.GetValue<int>("Port"),
-            Tags = _appRegistrationConfig.GetSection("Tags").Get<string[]>(),
-            Meta = _appRegistrationConfig.GetSection("Meta").GetChildren()
-                .ToDictionary(x => x.Key, x => x.Value)
-        };
-    }
-
-    private async Task<string> FetchServiceAddressAsync(CancellationToken stoppingToken)
-    {
-        var appAddressInConfig = _appRegistrationConfig.GetValue<string>("Address");
-        if (string.IsNullOrWhiteSpace(appAddressInConfig) == false)
-            return appAddressInConfig;
-
-        var dnsHostName = Dns.GetHostName();
-        var hostname = await Dns.GetHostEntryAsync(dnsHostName, stoppingToken);
-        //_serviceRegistration.Address = //$"http://192.168.12.112";
-
-        return $"http://{hostname.HostName}";
     }
 
     public override async Task StopAsync(CancellationToken cancellationToken)
     {
-        if (_serviceRegistration != null)
+        _logger.LogInformation("Consul registration background service is stopping...");
+        if (_consulServiceRegistration is not null)
         {
-            _logger.LogInformation("Deregistering service");
-
-            await _consulClient.Agent.ServiceDeregister(_serviceRegistration.ID,
-                cancellationToken);
+            _logger.LogInformation("Deregistering the service ID `{serviceId}`...", _consulServiceRegistration.ID);
+            var deregisteringResult = await _consulClient.Agent.ServiceDeregister(_consulServiceRegistration.ID, cancellationToken);
+            _logger.LogInformation("Deregistering the service ID `{serviceId}` result code: `{result}`", _consulServiceRegistration.ID, deregisteringResult.StatusCode);
         }
 
         await base.StopAsync(cancellationToken);
+    }
+
+    private async Task TryRegisterServiceAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("Registering service with ServiceRegistry...");
+
+        // Fetch config values
+        PrepareMainServiceInfoForRegistration();
+
+        // Set unique ID
+        _consulServiceRegistration!.ID = GenerateUniqueIdForThisInstanceByNameAndPort();
+        _logger.LogDebug("Service instance unique ID generated as : `{ID}`", _consulServiceRegistration!.ID);
+
+        _logger.LogDebug("First, deregister the same service[s] (same instance ID) with ID: `{ID}` from ServiceRegistry if there is any...", _consulServiceRegistration!.ID);
+        var deregisterPreviousInstancesOfThisServiceResult = await _consulClient.Agent.ServiceDeregister(_consulServiceRegistration.ID, stoppingToken);
+        _logger.LogDebug("Deregistering the same service[s] with `{ID}` from ServiceRegistry result status code: `{result}`", _consulServiceRegistration!.ID, deregisterPreviousInstancesOfThisServiceResult.StatusCode);
+        if (deregisterPreviousInstancesOfThisServiceResult.StatusCode != HttpStatusCode.OK)
+        {
+            _logger.LogWarning("Deregistering the same service[s] with `{ID}` from ServiceRegistry " +
+                "result WAS NOT successful (maybe the service didn't registered already. result status code: `{result}`", _consulServiceRegistration!.ID, deregisterPreviousInstancesOfThisServiceResult.StatusCode);
+        }
+
+        // Set hostname
+        _consulServiceRegistration.Address = await FetchServiceAddressAsync(stoppingToken);
+        _logger.LogInformation("Service address : `{Address}`", _consulServiceRegistration.Address);
+
+        // Health Check
+        _consulServiceRegistration.Checks = PrepareHealthChecksInfoForRegistration();
+        var checksAsJson = JsonSerializer.Serialize(_consulServiceRegistration.Checks);
+        _logger.LogInformation("Health checks : `{HealthChecks}`", checksAsJson);
+
+        var serviceRegistrationResult = await _consulClient.Agent.ServiceRegister(_consulServiceRegistration, stoppingToken);
+        _logger.LogInformation("Service register statusCode : `{result}`", serviceRegistrationResult.StatusCode.ToString());
+        if (serviceRegistrationResult.StatusCode != HttpStatusCode.OK)
+        {
+            _logger.LogCritical("Registering the service with `{ID}` in ServiceRegistry failed with the result: `{result}`", _consulServiceRegistration!.ID, serviceRegistrationResult.StatusCode);
+        }
     }
 }

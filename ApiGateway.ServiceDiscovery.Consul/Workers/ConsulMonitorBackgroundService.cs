@@ -13,7 +13,7 @@ public class ConsulMonitorBackgroundService : BackgroundService
     private readonly ILogger<ConsulMonitorBackgroundService> _logger;
     private readonly IConfiguration _configuration;
 
-    private readonly int _reloadIntervalInSeconds;
+    private readonly int _autoReloadIntervalSeconds;
 
     public ConsulMonitorBackgroundService(IServiceDiscovery serviceDiscovery, ILogger<ConsulMonitorBackgroundService> logger
         , IConfiguration configuration)
@@ -22,19 +22,22 @@ public class ConsulMonitorBackgroundService : BackgroundService
         _logger = logger;
         _configuration = configuration;
 
-        _reloadIntervalInSeconds = _configuration.GetValue<int>("ConsulServiceDiscovery:ReloadRoutesAndClusters:IntervalSeconds");
+        _autoReloadIntervalSeconds = _configuration.GetValue<int?>("ConsulServiceDiscovery:AutoDiscovery:IntervalSeconds")
+            ?? DEFAULT_CONSUL_POLL_INTERVAL_SECONDS;
+
+        logger.LogDebug("AutoDiscovery (reloading Routes and Clusters automatically) interval set as `{interval}` seconds", _autoReloadIntervalSeconds);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
         {
-            _logger.LogInformation("Start updating configs (routes/clusters) from Consul ServiceDiscovery...");
+            _logger.LogInformation("Start reloading configs (routes/clusters) from Consul ServiceRegistry...");
             await _serviceDiscovery.ReloadRoutesAndClustersAsync(stoppingToken);
             _logger.LogInformation("Route configs (routes/clusters) from Consul ServiceDiscovery reloaded.");
 
-            _logger.LogInformation("Next reloading in {PollSeconds} seconds", _reloadIntervalInSeconds);
-            await Task.Delay(TimeSpan.FromSeconds(_reloadIntervalInSeconds), stoppingToken);
+            _logger.LogInformation("Next reloading in {PollSeconds} seconds...", _autoReloadIntervalSeconds);
+            await Task.Delay(TimeSpan.FromSeconds(_autoReloadIntervalSeconds), stoppingToken);
         }
     }
 }

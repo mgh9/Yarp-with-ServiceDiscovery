@@ -1,39 +1,25 @@
 ﻿using ApiGateway.ServiceDiscovery.Consul;
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
-using Yarp.ReverseProxy.Configuration;
-using Yarp.ReverseProxy.Swagger;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
 internal static class ReverseProxyServiceCollectionExtensions
 {
-    internal static void AddCustomReverseProxy(this IServiceCollection services)
+    internal static void AddCustomReverseProxy(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IServiceDiscovery, ConsulServiceDiscovery>();
 
         services.AddReverseProxy()
                     .ConfigureHttpClient((context, handler) =>
                     {
+                        // TODO: do we need this in production or just the development?
                         //if (builder.Environment.IsDevelopment())
                         {
+                            // need to skip ssl/certificates issues
                             handler.SslOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, chainErrors) => true;
                         }
                     })
-                    .LoadFromConsul();
-                    //.AddSwagger(EmptyReverseProxyDocumentFilterConfig);
-                    //.AddSwagger((GetSwaggerConfig(reverseProxy.Clusters));
-    }
-
-    private static ReverseProxyDocumentFilterConfig EmptyReverseProxyDocumentFilterConfig
-    {
-        get
-        {
-            return new()
-            {
-                Clusters = new Dictionary<string, ReverseProxyDocumentFilterConfig.Cluster>(),
-                Routes = new Dictionary<string, RouteConfig>()
-            };
-        }
+                    .LoadFromConsul(configuration);
     }
 }
 
