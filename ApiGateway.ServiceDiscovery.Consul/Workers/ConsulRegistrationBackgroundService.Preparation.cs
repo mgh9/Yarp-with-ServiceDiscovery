@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.Exceptions;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
 using Consul;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -15,29 +15,24 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
         {
             var serviceAddressUri = new Uri(_consulServiceRegistration!.Address);
             var serviceHost = serviceAddressUri.Host;
-            var servicePort = _appRegistrationConfig.GetValue<int>("Port");
 
-            var serviceHealthEndpoint = $"{_consulServiceRegistration.Address}:{servicePort}{_appRegistrationConfigMeta.GetValue<string>("service_health_check_endpoint")}";
-            _logger.LogDebug("Service healthCheck : {healthCheck}", serviceHealthEndpoint);
-
-            var serviceHealthCheckSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_check_seconds");
-            var serviceHealthTimeoutSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_check_timeout_seconds");
-            var serviceHealthDeregisterSeconds = _appRegistrationConfigMeta.GetValue<int>("service_health_check_deregister_seconds");
+            var serviceHealthEndpointAbsoluteUrl = $"{_consulServiceRegistration.Address}:{_consulServiceRegistrationOptions.Port}{_consulServiceRegistrationOptions.ServiceHealthCheckEndpoint}";
+            _logger.LogInformation("Service http[s] healthCheck address to register in ServiceRegistry : `{healthCheck}`", serviceHealthEndpointAbsoluteUrl);
 
             var tcpCheck = new AgentServiceCheck
             {
-                TCP = $"{serviceHost}:{servicePort}",
-                Interval = TimeSpan.FromSeconds(serviceHealthCheckSeconds),
-                Timeout = TimeSpan.FromSeconds(serviceHealthTimeoutSeconds),
-                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(serviceHealthDeregisterSeconds),
+                TCP = $"{serviceHost}:{_consulServiceRegistrationOptions.Port}",
+                Interval = TimeSpan.FromSeconds(_consulServiceRegistrationOptions.ServiceHealthCheckSeconds),
+                Timeout = TimeSpan.FromSeconds(_consulServiceRegistrationOptions.ServiceHealthCheckTimeoutSeconds),
+                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(_consulServiceRegistrationOptions.ServiceHealthCheckDeregisterSeconds),
             };
 
             var httpCheck = new AgentServiceCheck
             {
-                HTTP = serviceHealthEndpoint,
-                Interval = TimeSpan.FromSeconds(serviceHealthCheckSeconds),
-                Timeout = TimeSpan.FromSeconds(serviceHealthTimeoutSeconds),
-                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(serviceHealthDeregisterSeconds),
+                HTTP = serviceHealthEndpointAbsoluteUrl,
+                Interval = TimeSpan.FromSeconds(_consulServiceRegistrationOptions.ServiceHealthCheckSeconds),
+                Timeout = TimeSpan.FromSeconds(_consulServiceRegistrationOptions.ServiceHealthCheckTimeoutSeconds),
+                DeregisterCriticalServiceAfter = TimeSpan.FromSeconds(_consulServiceRegistrationOptions.ServiceHealthCheckDeregisterSeconds),
                 TLSSkipVerify = true
             };
 
@@ -68,10 +63,10 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
         {
             _consulServiceRegistration = new AgentServiceRegistration
             {
-                Name = _appRegistrationConfig.GetValue<string>("Name"),
-                Port = _appRegistrationConfig.GetValue<int>("Port"),
-                Tags = _appRegistrationConfig.GetSection("Tags").Get<string[]>(),
-                Meta = _appRegistrationConfig.GetSection("Meta").GetChildren().ToDictionary(x => x.Key, x => x.Value)
+                Name = _consulServiceRegistrationOptions.Name,
+                Port = _consulServiceRegistrationOptions.Port,
+                Tags = _consulServiceRegistrationOptions.Tags,
+                Meta= _consulServiceRegistrationOptions.Meta
             };
         }
         catch (Exception ex)
@@ -82,20 +77,80 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
 
     private async Task<string> FetchServiceAddressAsync(CancellationToken stoppingToken)
     {
-        var appAddressInConfig = _appRegistrationConfig.GetValue<string>("Address");
-        _logger.LogDebug("Trying to fetch service address from appSettings in `Address` key...");
-        if (string.IsNullOrWhiteSpace(appAddressInConfig) == false)
+        if (TryToFetchServiceAddressFromAppSettings(out string? serviceAddress))
         {
-            _logger.LogDebug("Service address from appSettings in `Address` key is : `{address}`", appAddressInConfig);
-            return appAddressInConfig;
+            _logger.LogDebug("Service address found in appSettings : `{address}`", serviceAddress);
+            return serviceAddress!;
         }
 
         _logger.LogDebug("Service address not found in appSettings `Address` key, trying to fetch from localhost dns name...");
+        serviceAddress = await FetchServiceAddressFromDnsAsync(stoppingToken);
+        return serviceAddress!;
+    }
+
+    private async Task<string> FetchServiceAddressFromDnsAsync(CancellationToken stoppingToken)
+    {
         var dnsHostName = Dns.GetHostName();
         var hostname = await Dns.GetHostEntryAsync(dnsHostName, stoppingToken);
-        _logger.LogDebug("Service hostName is `{hostName}`", hostname);
+        var hostnameValue = hostname.HostName?.ToString()?.ToLowerInvariant();
 
-        var serviceAddress = $"http://{hostname.HostName}";
+        _logger.LogDebug("Service hostName is `{hostName}`", hostnameValue);
+        if (hostnameValue is null)
+        {
+            throw new InvalidServiceRegistrationInfoException("Cannot fetch hostname from HostEntry of the machine");
+        }
+
+        var serviceAddress = _consulServiceRegistrationOptions.Schema ?? "http";
+        serviceAddress += $"://{hostnameValue}";
+
         return serviceAddress;
+    }
+
+    private bool TryToFetchServiceAddressFromAppSettings(out string? serviceAddress)
+    {
+        _logger.LogDebug("Trying to fetch service address from appSettings in `Address` key...");
+
+        serviceAddress = _consulServiceRegistrationOptions.Address;        
+        if (string.IsNullOrWhiteSpace(_consulServiceRegistrationOptions.Address) == false)
+        {
+            serviceAddress = _consulServiceRegistrationOptions.Schema ?? "http";
+            return true;
+        }
+
+        return false;
+    }
+
+    private static void PrepareServiceRegistrationOptions(ConsulServiceRegistrationOptions options)
+    {
+        options.Schema ??= "http";
+
+        // health check endpoint
+        options.ServiceHealthCheckEndpoint = options.Meta?.GetValueOrDefault("service_health_check_endpoint");
+        if (options.ServiceHealthCheckEndpoint?.StartsWith('/') == false)
+        {
+            options.Meta!["service_health_check_endpoint"] = "/" + options.Meta["service_health_check_endpoint"];
+            options.ServiceHealthCheckEndpoint = "/" + options.ServiceHealthCheckEndpoint;
+        }
+
+        var tmp2 = options.Meta?.GetValueOrDefault("yarp_is_enabled");
+        options.YarpIsEnabled = tmp2?.Equals("true", StringComparison.InvariantCultureIgnoreCase) == true;
+
+        options.YarpRouteMatchPath = options.Meta?.GetValueOrDefault("yarp_route_match_path");
+        options.YarpRouteTransformPath = options.Meta?.GetValueOrDefault("yarp_route_transform_path");
+
+        if (options.Meta?.TryGetValue("service_health_check_seconds", out string? tmp3) == true)
+        {
+            options.ServiceHealthCheckSeconds = int.Parse(tmp3);
+        }
+
+        if (options.Meta?.TryGetValue("service_health_check_timeout_seconds", out string? tmp4) == true)
+        {
+            options.ServiceHealthCheckTimeoutSeconds = int.Parse(tmp4);
+        }
+
+        if (options.Meta?.TryGetValue("service_health_check_deregister_seconds", out string? tmp5) == true)
+        {
+            options.ServiceHealthCheckDeregisterSeconds = int.Parse(tmp5);
+        }
     }
 }

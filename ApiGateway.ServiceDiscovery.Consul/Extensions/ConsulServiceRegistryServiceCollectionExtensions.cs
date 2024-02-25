@@ -1,9 +1,9 @@
-﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
-using static AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.ConsulServiceDiscoveryOptions;
+﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-public static class ConsulServiceDiscoveryRegistryServiceCollectionExtensions
+public static class ConsulServiceRegistryServiceCollectionExtensions
 {
     public static IServiceCollection RegisterWithConsulServiceDiscovery(this IServiceCollection services, ConsulClientOptions consulClientOptions)
     {

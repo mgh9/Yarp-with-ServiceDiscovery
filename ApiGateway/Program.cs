@@ -1,5 +1,3 @@
-using AtiyanSeir.B2B.ApiGateway.Swagger;
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
@@ -13,8 +11,8 @@ var app = builder.Build();
 
 //app.UseHttpLogging();
 app.UseRouting();
-app.MapReverseProxy();
-app.UseSwaggerIfNotProduction();
+app.UseCustomReverseProxy();
+app.UseCustomSwagger();
 app.MapCustomEndpoints(builder);
 
 app.Run();

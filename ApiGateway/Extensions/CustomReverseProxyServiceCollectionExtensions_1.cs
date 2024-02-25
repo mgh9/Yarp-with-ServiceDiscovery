@@ -3,7 +3,7 @@ using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-internal static class ReverseProxyServiceCollectionExtensions
+internal static class CustomReverseProxyServiceCollectionExtensions
 {
     internal static void AddCustomReverseProxy(this IServiceCollection services, IConfiguration configuration)
     {

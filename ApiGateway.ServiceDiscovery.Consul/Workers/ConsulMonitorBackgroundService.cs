@@ -7,7 +7,7 @@ namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
 
 public class ConsulMonitorBackgroundService : BackgroundService
 {
-    public const int DEFAULT_CONSUL_POLL_INTERVAL_SECONDS = 3000;
+    public const int DEFAULT_CONSUL_POLL_INTERVAL_SECONDS = 30;
 
     private readonly IServiceDiscovery _serviceDiscovery;
     private readonly ILogger<ConsulMonitorBackgroundService> _logger;
@@ -33,7 +33,7 @@ public class ConsulMonitorBackgroundService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             _logger.LogInformation("Start reloading configs (routes/clusters) from Consul ServiceRegistry...");
-            await _serviceDiscovery.ReloadRoutesAndClustersAsync(stoppingToken);
+            await _serviceDiscovery.ReloadAsync(stoppingToken);
             _logger.LogInformation("Route configs (routes/clusters) from Consul ServiceDiscovery reloaded.");
 
             _logger.LogInformation("Next reloading in {PollSeconds} seconds...", _autoReloadIntervalSeconds);

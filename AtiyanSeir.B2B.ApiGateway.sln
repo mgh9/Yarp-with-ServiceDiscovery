@@ -17,7 +17,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SampleApis", "SampleApis", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul", "ApiGateway.ServiceDiscovery.Consul\AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.csproj", "{4C7A920C-1BC7-4D0B-8BB8-B2195C62A533}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api Order TestiiiHasst", "Smples\Api1\Api Order TestiiiHasst.csproj", "{BEBB1438-AFE8-4837-A979-469A6CE90441}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleApi1", "Smples\Api1\SampleApi1.csproj", "{BEBB1438-AFE8-4837-A979-469A6CE90441}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api2", "Smples\Api2\Api2.csproj", "{6D7B74EB-0C24-4D20-A87D-7278E673FEE6}"
 EndProject

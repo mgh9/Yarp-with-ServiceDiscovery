@@ -44,18 +44,19 @@ namespace ApiGateway.ServiceDiscovery.Consul
             return _proxyConfigProvider.GetConfig().Routes;
         }
 
-        public string ExportRoutesAndClustersAsJson()
+        public string ExportConfigs()
         {
             var config = new
             {
-                Routes = GetRoutes(),
-                Clusters = GetClusters()
+                Routes = GetRoutes() ?? [],
+                Clusters = GetClusters() ?? []
             };
 
-            return JsonConvert.SerializeObject(config, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            var exported = JsonConvert.SerializeObject(config, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            return exported;
         }
 
-        public async Task ReloadRoutesAndClustersAsync(CancellationToken cancellationToken)
+        public async Task ReloadAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Reloading Routes and Clusters from Consul ServiceRegistry...");
 
@@ -188,7 +189,7 @@ namespace ApiGateway.ServiceDiscovery.Consul
             return new RouteConfig
             {
                 RouteId = GenerateRouteIdByServiceName(consulService.Service),
-                ClusterId =  GenerateClusterIdByServiceName(consulService.Service),
+                ClusterId = GenerateClusterIdByServiceName(consulService.Service),
 
                 Match = new RouteMatch
                 {
@@ -226,10 +227,9 @@ namespace ApiGateway.ServiceDiscovery.Consul
                 // service cluster destination full address
                 var serviceAddressIncludingPort = $"{consulService.Address}:{consulService.Port}";
 
-                destinations.Add(consulService.ID, new DestinationConfig 
-                { 
-                    Address = serviceAddressIncludingPort, 
-                    //Health =  //serviceAddressIncludingPort
+                destinations.Add(consulService.ID, new DestinationConfig
+                {
+                    Address = serviceAddressIncludingPort
                 });
 
                 // append new destination with the previous one
@@ -264,30 +264,30 @@ namespace ApiGateway.ServiceDiscovery.Consul
             return true;
         }
 
-        private static ClusterConfig GenerateYarpClusterOrGetExistingOne(Dictionary<string, ClusterConfig> clusters, AgentService consulService)
+        private static ClusterConfig GenerateYarpClusterOrGetExistingOne(Dictionary<string, ClusterConfig> existingClustersToLookup, AgentService consulService)
         {
             _ = consulService.Meta.TryGetValue("service_health_check_endpoint", out string? serviceHealthCheckEndpoint);
             _ = consulService.Meta.TryGetValue("service_health_check_seconds", out string? serviceHealthCheckSeconds);
             _ = consulService.Meta.TryGetValue("service_health_check_timeout_seconds", out string? serviceHealthTimeoutSeconds);
 
-            var generatedClusterOrExistingOne = clusters.TryGetValue(consulService.Service, out var existingCluster)
+            var generatedClusterOrExistingOne = existingClustersToLookup.TryGetValue(consulService.Service, out var existingCluster)
                                             ? existingCluster
                                             : new ClusterConfig
                                             {
                                                 ClusterId = GenerateClusterIdByServiceName(consulService.Service),
                                                 LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
-                                               
-                                                ////HealthCheck = new()
-                                                ////{
-                                                ////    Active = new ActiveHealthCheckConfig
-                                                ////    {
-                                                ////        Enabled = true,
-                                                ////        Path = serviceHealthCheckEndpoint,
-                                                ////        Interval = TimeSpan.FromSeconds(int.Parse(serviceHealthCheckSeconds)),
-                                                ////        Timeout = TimeSpan.FromSeconds(int.Parse(serviceHealthTimeoutSeconds)),
-                                                ////        Policy = HealthCheckConstants.ActivePolicy.ConsecutiveFailures,
-                                                ////    }
-                                                ////},
+
+                                                HealthCheck = new()
+                                                {
+                                                    Active = new ActiveHealthCheckConfig
+                                                    {
+                                                        Enabled = true,
+                                                        Path = serviceHealthCheckEndpoint,
+                                                        Interval = TimeSpan.FromSeconds(int.Parse(serviceHealthCheckSeconds)),
+                                                        Timeout = TimeSpan.FromSeconds(int.Parse(serviceHealthTimeoutSeconds)),
+                                                        Policy = HealthCheckConstants.ActivePolicy.ConsecutiveFailures,
+                                                    }
+                                                },
 
                                                 Metadata = new Dictionary<string, string>
                                                 {

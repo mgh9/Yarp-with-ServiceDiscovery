@@ -1,6 +1,8 @@
 ﻿using System.Net;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.Exceptions;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
 using Consul;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -12,21 +14,25 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
 {
     private readonly IConsulClient _consulClient;
     private readonly ILogger<ConsulRegistrationBackgroundService> _logger;
-    private readonly IConfigurationSection _appRegistrationConfig;
-    private readonly IConfigurationSection _appRegistrationConfigMeta;
 
     private AgentServiceRegistration? _consulServiceRegistration;
+    private readonly ConsulServiceRegistrationOptions _consulServiceRegistrationOptions = new();
+    private readonly static JsonSerializerOptions _jsonSerializerSettingsDefault = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
     public ConsulRegistrationBackgroundService(IConsulClient consulClient
                                                 , IConfiguration configuration
                                                 , ILogger<ConsulRegistrationBackgroundService> logger)
     {
         _consulClient = consulClient;
-        _appRegistrationConfig = configuration.GetRequiredSection("ConsulServiceDiscovery:ServiceRegistration");
-        _appRegistrationConfigMeta = configuration.GetRequiredSection("ConsulServiceDiscovery:ServiceRegistration:Meta");
         _logger = logger;
-    }
+        
+        var serviceRegistrationConfigSection = configuration.GetSection("ConsulServiceRegistry:ServiceRegistration") 
+                                                    ?? throw new InvalidServiceRegistrationInfoException("The `Service Registry` configurations not found in the key : `ConsulServiceRegistry:ServiceRegistration`");
+        serviceRegistrationConfigSection.Bind(_consulServiceRegistrationOptions);
 
+        PrepareServiceRegistrationOptions(_consulServiceRegistrationOptions);
+    }
+       
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -77,13 +83,13 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
                 "result WAS NOT successful (maybe the service didn't registered already. result status code: `{result}`", _consulServiceRegistration!.ID, deregisterPreviousInstancesOfThisServiceResult.StatusCode);
         }
 
-        // Set hostname
+        // Service address
         _consulServiceRegistration.Address = await FetchServiceAddressAsync(stoppingToken);
-        _logger.LogInformation("Service address : `{Address}`", _consulServiceRegistration.Address);
+        _logger.LogInformation("Service address : `{Address}:{Port}`", _consulServiceRegistration.Address, _consulServiceRegistration.Port);
 
         // Health Check
         _consulServiceRegistration.Checks = PrepareHealthChecksInfoForRegistration();
-        var checksAsJson = JsonSerializer.Serialize(_consulServiceRegistration.Checks);
+        var checksAsJson = JsonSerializer.Serialize(_consulServiceRegistration.Checks, _jsonSerializerSettingsDefault);
         _logger.LogInformation("Health checks : `{HealthChecks}`", checksAsJson);
 
         var serviceRegistrationResult = await _consulClient.Agent.ServiceRegister(_consulServiceRegistration, stoppingToken);
