@@ -3,20 +3,13 @@ using AtiyanSeir.B2B.ApiGateway.Swagger;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-internal static class SwaggerServiceCollectionExtensions
+internal static class CustomSwaggerWebApplicationExtensions
 {
-    internal static void AddCustomSwagger(this IServiceCollection services)
-    {
-        services.AddEndpointsApiExplorer();
-        //services.AddTransient<IConfigureOptions<SwaggerGenOptions>, ConfigureSwaggerOptions>();
-        services.AddSwaggerGen();
-    }
-
     /// <summary>
     /// Prepare central-swagger based on routes/clusters configurations
     /// </summary>
     /// <param name="app"></param>
-    internal static void UseSwaggerIfNotProduction(this WebApplication app)
+    internal static void UseCustomSwagger(this WebApplication app)
     {
         //if (app.Environment.IsProduction())
 

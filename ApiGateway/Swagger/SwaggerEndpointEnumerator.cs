@@ -20,13 +20,20 @@ public class SwaggerEndpointEnumerator : IEnumerable<UrlDescriptor>
 
     public IEnumerator<UrlDescriptor> GetEnumerator()
     {
-        var routes = _serviceDiscovery?.GetRoutes() ?? new List<RouteConfig>();
-        var clusters = _serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
-
         string serverAddress = GetServerAddress();
         _logger.LogDebug("Reverse proxy server address is : `{address}`", serverAddress);
 
-        _logger.LogDebug("Enumerating {count} clusters to generating swagger documents...", clusters.Count);
+        var routes = _serviceDiscovery?.GetRoutes() ?? new List<RouteConfig>();
+        var clusters = _serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
+        if (clusters.Count == 0)
+        {
+            _logger.LogWarning("There is no cluster destinations to generate swagger documents!!!");
+        }
+        else
+        {
+            _logger.LogDebug("Enumerating {count} clusters to generating swagger documents...", clusters.Count);
+        }
+
         foreach (var clusterItem in clusters)
         {
             var firstDestinationCluster = clusterItem.Destinations?.FirstOrDefault();

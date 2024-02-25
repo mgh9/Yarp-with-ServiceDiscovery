@@ -3,7 +3,8 @@ using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 namespace Microsoft.Extensions.DependencyInjection;
-public static class CustomEndpointsServiceCollectionExtensions
+
+internal static class CustomEndpointsWebApplicationExtensions
 {
     internal static void MapCustomEndpoints(this WebApplication app, WebApplicationBuilder builder)
     {
@@ -24,10 +25,12 @@ public static class CustomEndpointsServiceCollectionExtensions
             }
         });
 
+        // TODO: make it as POST and can be called from only internal network (white-listed)
         app.MapGet("/reload", async context =>
         {
             var serviceDiscovery = context.RequestServices.GetRequiredService<IServiceDiscovery>();
-            await serviceDiscovery.ReloadRoutesAndClustersAsync(default);
+            await serviceDiscovery.ReloadAsync(default);
+            await context.Response.WriteAsync("Reloaded");
         })
             .WithName("Reload/Update Routes and Clusters")
             .WithOpenApi();
@@ -40,7 +43,7 @@ public static class CustomEndpointsServiceCollectionExtensions
 
         app.MapGet("/configs", async (IServiceDiscovery serviceDiscovery, HttpContext context) =>
         {
-            var allRoutesAndClustersJsoned = serviceDiscovery.ExportRoutesAndClustersAsJson();
+            var allRoutesAndClustersJsoned = serviceDiscovery.ExportConfigs();
             await context.Response.WriteAsync(allRoutesAndClustersJsoned);
         });
 

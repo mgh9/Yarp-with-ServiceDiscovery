@@ -16,7 +16,7 @@ public static class Endpoints
             var scheme = request.Scheme;
 
             // Log the endpoint information
-            app.Logger.LogDebug($"API 02 Endpoint called: {scheme}://{host}{request.Path}");
+            app.Logger.LogInformation($"API 02 Endpoint called: {scheme}://{host}{request.Path}");
 
             return $"{DateTime.Now} - API 02 DATA";
         })

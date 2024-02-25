@@ -1,4 +1,5 @@
 using Api1;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
 using Coordinator.HealthChecking;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,9 +16,9 @@ builder.Services.AddSwaggerGen(opt => opt.SwaggerDoc("v1", new Microsoft.OpenApi
     Description = "Description of the service 11 orderrr"
 }));
 
-var host = builder.Configuration.GetValue<string>("ConsulServiceDiscovery:ConsulClient:Host") ?? throw new ArgumentException("Consul server address or not found!");
-var datacenter = builder.Configuration.GetValue<string>("ConsulServiceDiscovery:ConsulClient:Datacenter") ?? string.Empty;
-builder.Services.RegisterWithConsulServiceDiscovery(new AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.ConsulServiceDiscoveryOptions.ConsulClientOptions(host, datacenter));
+ConsulClientOptions consulClientOptions = new();
+builder.Configuration.GetSection("ConsulServiceRegistry:ConsulClient").Bind(consulClientOptions);
+builder.Services.RegisterWithConsulServiceDiscovery(consulClientOptions);
 
 var app = builder.Build();
 

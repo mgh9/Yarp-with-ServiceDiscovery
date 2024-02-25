@@ -1,4 +1,5 @@
 using Api2;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,9 +9,9 @@ builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var host = builder.Configuration.GetValue<string>("ConsulServiceDiscovery:ConsulClient:Host") ?? throw new ArgumentException("Consul server address or not found!");
-var datacenter = builder.Configuration.GetValue<string>("ConsulServiceDiscovery:ConsulClient:Datacenter") ?? string.Empty;
-builder.Services.RegisterWithConsulServiceDiscovery(new AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.ConsulServiceDiscoveryOptions.ConsulClientOptions(host, datacenter));
+ConsulClientOptions consulClientOptions = new();
+builder.Configuration.GetSection("ConsulServiceRegistry:ConsulClient").Bind(consulClientOptions);
+builder.Services.RegisterWithConsulServiceDiscovery(consulClientOptions);
 
 var app = builder.Build();
 
