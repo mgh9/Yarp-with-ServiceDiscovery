@@ -1,0 +1,10 @@
+chanta instance az har business API amade beshe
+---
+
+Swagger:
+	az khode e method e UseSwaggerUI reflect kon..shayad beshe
+
+
+resource:
+	https://github.com/domaindrivendev/Swashbuckle.AspNetCore/issues/1093
+	goolge:swagger runtime build
