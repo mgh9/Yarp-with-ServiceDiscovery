@@ -1,5 +1,5 @@
 ﻿using System.Text.Json;
-using Newtonsoft.Json;
+using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -14,11 +14,8 @@ internal static class CustomReverseProxyWebApplicationExtensions
 
     private static void LogImportantConfigs(WebApplication app)
     {
-        var serviceDiscoveryConfigs = app.Configuration.GetSection("ConsulServiceDiscovery").Get<Dictionary<string,dynamic>>();
-        app.Logger.LogInformation("ConsulServiceDiscovery configs: {config}", JsonConvert.SerializeObject(serviceDiscoveryConfigs));
-
-        //var centralSwaggerConfigs = app.Configuration.GetSection("CentralSwagger").Get<object>();
-        //app.Logger.LogInformation("CentralSwagger configs: {config}", JsonSerializer.Serialize(centralSwaggerConfigs));
+        var consulClientOptions = app.Configuration.GetSection("ConsulServiceDiscovery:ConsulClient").Get<ConsulClientOptions>();
+        app.Logger.LogInformation("ConsulServiceDiscovery ConsulClient options: {config}", JsonSerializer.Serialize(consulClientOptions));
 
         var isAutoDiscoveryEnabled = app.Configuration.GetValue<bool>("ConsulServiceDiscovery:AutoDiscovery:IsEnabled");
         if (isAutoDiscoveryEnabled)

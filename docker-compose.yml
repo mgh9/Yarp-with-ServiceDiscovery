@@ -1,0 +1,18 @@
+version: '3.4'
+
+services:
+  atiyanseir.b2b.apigateway:
+    image: ${DOCKER_REGISTRY-}atiyanseirb2bapigateway
+    container_name: dev-api-gateway
+
+    networks:
+      - shared      
+    
+    build:
+      context: .
+      dockerfile: ApiGateway/Dockerfile
+
+networks:
+  shared:
+    name: shared
+    external: true

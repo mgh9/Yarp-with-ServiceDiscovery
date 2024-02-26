@@ -9,6 +9,8 @@ builder.Services.AddCustomReverseProxy(builder.Configuration);
 
 var app = builder.Build();
 
+app.Logger.LogInformation("Environment is {envName}", app.Environment.EnvironmentName);
+
 //app.UseHttpLogging();
 app.UseRouting();
 app.UseCustomReverseProxy();
