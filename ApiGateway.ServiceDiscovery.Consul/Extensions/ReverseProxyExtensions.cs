@@ -17,7 +17,7 @@ public static class ReverseProxyExtensions
 
         if (isAutoReloadEnabled == true)
         {
-            builder.Services.AddHostedService<ConsulMonitorBackgroundService>();
+            builder.Services.AddHostedService<AutoDiscoveryBackgroundService>();
         }
 
         return builder;

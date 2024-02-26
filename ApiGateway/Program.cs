@@ -1,3 +1,5 @@
+using AtiyanSeir.B2B.ApiGateway.Extensions;
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddHttpContextAccessor();
@@ -9,8 +11,7 @@ builder.Services.AddCustomReverseProxy(builder.Configuration);
 
 var app = builder.Build();
 
-app.Logger.LogInformation("Environment is {envName}", app.Environment.EnvironmentName);
-
+app.LogImportantConfigs();
 //app.UseHttpLogging();
 app.UseRouting();
 app.UseCustomReverseProxy();
