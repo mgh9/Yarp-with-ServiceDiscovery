@@ -5,11 +5,16 @@
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<InvariantGlobalization>true</InvariantGlobalization>
+		<UserSecretsId>eaaf2d0e-8bfb-4411-bde4-6648745c123f</UserSecretsId>
+		<DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+		<DockerfileContext>..\..</DockerfileContext>
+		<DockerComposeProjectPath>..\..\docker-compose.dcproj</DockerComposeProjectPath>
 	</PropertyGroup>
 
 	<ItemGroup>
 		<ProjectReference Include="..\..\ApiGateway.ServiceDiscovery.Abstractions\Yarp.ServiceDiscovery.Abstractions.csproj" />
 		<ProjectReference Include="..\..\ApiGateway.ServiceDiscovery.Consul\Yarp.ServiceDiscovery.Consul.csproj" />
+		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.19.5" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
 		<PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.0" />
 	</ItemGroup>
