@@ -1,5 +1,5 @@
 using Api1;
-using Coordinator.HealthChecking;
+using Api1.HealthChecking;
 using Yarp.ServiceDiscovery.Consul.Options;
 
 var builder = WebApplication.CreateBuilder(args);

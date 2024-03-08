@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
-namespace Coordinator.HealthChecking
+namespace Api1.HealthChecking
 {
     public class MainHealthCheck : IHealthCheck
     {
