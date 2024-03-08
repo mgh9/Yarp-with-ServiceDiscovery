@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34302.71
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtiyanSeir.B2B.ApiGateway", "ApiGateway\AtiyanSeir.B2B.ApiGateway.csproj", "{0340C2B9-9D7F-4744-A125-394F8EF2FA61}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Yarp", "ApiGateway\Yarp.csproj", "{0340C2B9-9D7F-4744-A125-394F8EF2FA61}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{FE3FEF05-5344-4098-BF7E-C15B62806EB0}"
 	ProjectSection(SolutionItems) = preProject
@@ -11,15 +11,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		TODO.txt = TODO.txt
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions", "ApiGateway.ServiceDiscovery.Abstractions\AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.csproj", "{F5E7911C-2649-49B1-B0ED-27FEBDB385B0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Yarp.ServiceDiscovery.Abstractions", "ApiGateway.ServiceDiscovery.Abstractions\Yarp.ServiceDiscovery.Abstractions.csproj", "{F5E7911C-2649-49B1-B0ED-27FEBDB385B0}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SampleApis", "SampleApis", "{81642C0C-554A-4735-AC48-C39084ABA94F}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul", "ApiGateway.ServiceDiscovery.Consul\AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.csproj", "{4C7A920C-1BC7-4D0B-8BB8-B2195C62A533}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Yarp.ServiceDiscovery.Consul", "ApiGateway.ServiceDiscovery.Consul\Yarp.ServiceDiscovery.Consul.csproj", "{4C7A920C-1BC7-4D0B-8BB8-B2195C62A533}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SampleApi1", "Smples\Api1\SampleApi1.csproj", "{BEBB1438-AFE8-4837-A979-469A6CE90441}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api1", "Samples\Api1\Api1.csproj", "{B9F2CA3F-F593-4829-8927-D8684BFF5FF4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api2", "Smples\Api2\Api2.csproj", "{6D7B74EB-0C24-4D20-A87D-7278E673FEE6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Api2", "Samples\Api2\Api2.csproj", "{521F388A-B444-475C-8896-82D47B941E59}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,21 +39,21 @@ Global
 		{4C7A920C-1BC7-4D0B-8BB8-B2195C62A533}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4C7A920C-1BC7-4D0B-8BB8-B2195C62A533}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4C7A920C-1BC7-4D0B-8BB8-B2195C62A533}.Release|Any CPU.Build.0 = Release|Any CPU
-		{BEBB1438-AFE8-4837-A979-469A6CE90441}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{BEBB1438-AFE8-4837-A979-469A6CE90441}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{BEBB1438-AFE8-4837-A979-469A6CE90441}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{BEBB1438-AFE8-4837-A979-469A6CE90441}.Release|Any CPU.Build.0 = Release|Any CPU
-		{6D7B74EB-0C24-4D20-A87D-7278E673FEE6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{6D7B74EB-0C24-4D20-A87D-7278E673FEE6}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{6D7B74EB-0C24-4D20-A87D-7278E673FEE6}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{6D7B74EB-0C24-4D20-A87D-7278E673FEE6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B9F2CA3F-F593-4829-8927-D8684BFF5FF4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B9F2CA3F-F593-4829-8927-D8684BFF5FF4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B9F2CA3F-F593-4829-8927-D8684BFF5FF4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B9F2CA3F-F593-4829-8927-D8684BFF5FF4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{521F388A-B444-475C-8896-82D47B941E59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{521F388A-B444-475C-8896-82D47B941E59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{521F388A-B444-475C-8896-82D47B941E59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{521F388A-B444-475C-8896-82D47B941E59}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{BEBB1438-AFE8-4837-A979-469A6CE90441} = {81642C0C-554A-4735-AC48-C39084ABA94F}
-		{6D7B74EB-0C24-4D20-A87D-7278E673FEE6} = {81642C0C-554A-4735-AC48-C39084ABA94F}
+		{B9F2CA3F-F593-4829-8927-D8684BFF5FF4} = {81642C0C-554A-4735-AC48-C39084ABA94F}
+		{521F388A-B444-475C-8896-82D47B941E59} = {81642C0C-554A-4735-AC48-C39084ABA94F}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {AE0759AD-A3DA-432E-AE98-662071E1F971}

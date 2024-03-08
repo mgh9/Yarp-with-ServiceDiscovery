@@ -1,25 +1,26 @@
-﻿using ApiGateway.ServiceDiscovery.Consul;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
+﻿using Yarp.ServiceDiscovery.Abstractions;
+using Yarp.ServiceDiscovery.Consul;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
 internal static class CustomReverseProxyServiceCollectionExtensions
 {
-    internal static void AddCustomReverseProxy(this IServiceCollection services, IConfiguration configuration)
+    internal static IServiceCollection AddCustomReverseProxy(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddSingleton<IServiceDiscovery, ConsulServiceDiscovery>();
 
         services.AddReverseProxy()
                     .ConfigureHttpClient((context, handler) =>
                     {
-                        // TODO: do we need this in production or just the development?
                         //if (builder.Environment.IsDevelopment())
                         {
-                            // need to skip ssl/certificates issues
+                            // TODO: need to skip ssl/certificates issues in Development and/or Production?
                             handler.SslOptions.RemoteCertificateValidationCallback = (sender, certificate, chain, chainErrors) => true;
                         }
                     })
                     .LoadFromConsul(configuration);
+
+        return services;
     }
 }
 

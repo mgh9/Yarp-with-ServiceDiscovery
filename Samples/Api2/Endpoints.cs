@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 using System.Text.Json;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
+using Yarp.ServiceDiscovery.Abstractions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 
 namespace Api2;
@@ -36,9 +36,6 @@ public static class Endpoints
                     Platform = RuntimeInformation.FrameworkDescription,
                     OS = RuntimeInformation.OSDescription + " - " + RuntimeInformation.OSArchitecture,
                 });
-
-                await Console.Out.WriteLineAsync("HEALTHHHH check from : " + context.Request.HttpContext.Connection.RemoteIpAddress +
-                    ":" + context.Connection.RemotePort);
 
                 context.Response.ContentType = "application/json";
                 await context.Response.WriteAsync(json);

@@ -2,9 +2,11 @@
 
 internal static class CustomSwaggerServiceCollectionExtensions
 {
-    internal static void AddCustomSwagger(this IServiceCollection services)
+    internal static IServiceCollection AddCustomSwagger(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
         services.AddSwaggerGen();
+
+        return services;
     }
 }

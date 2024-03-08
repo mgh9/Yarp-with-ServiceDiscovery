@@ -1,21 +1,21 @@
-﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Yarp.ServiceDiscovery.Abstractions;
 
-namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
+namespace Yarp.ServiceDiscovery.Consul.Workers;
 
-public class ConsulMonitorBackgroundService : BackgroundService
+public class AutoDiscoveryBackgroundService : BackgroundService
 {
     public const int DEFAULT_CONSUL_POLL_INTERVAL_SECONDS = 30;
 
     private readonly IServiceDiscovery _serviceDiscovery;
-    private readonly ILogger<ConsulMonitorBackgroundService> _logger;
+    private readonly ILogger<AutoDiscoveryBackgroundService> _logger;
     private readonly IConfiguration _configuration;
 
     private readonly int _autoReloadIntervalSeconds;
 
-    public ConsulMonitorBackgroundService(IServiceDiscovery serviceDiscovery, ILogger<ConsulMonitorBackgroundService> logger
+    public AutoDiscoveryBackgroundService(IServiceDiscovery serviceDiscovery, ILogger<AutoDiscoveryBackgroundService> logger
         , IConfiguration configuration)
     {
         _serviceDiscovery = serviceDiscovery;

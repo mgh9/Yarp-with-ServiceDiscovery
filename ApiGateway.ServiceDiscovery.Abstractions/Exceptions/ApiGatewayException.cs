@@ -1,4 +1,4 @@
-﻿namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.Exceptions
+﻿namespace Yarp.ServiceDiscovery.Abstractions.Exceptions
 {
     public class ApiGatewayException : Exception
     {

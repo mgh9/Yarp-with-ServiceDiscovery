@@ -1,14 +1,13 @@
 ﻿using System.Net;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.Exceptions;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
 using Consul;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Yarp.ServiceDiscovery.Abstractions.Exceptions;
+using Yarp.ServiceDiscovery.Consul.Options;
 
-namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
+namespace Yarp.ServiceDiscovery.Consul.Workers;
 
 internal partial class ConsulRegistrationBackgroundService : BackgroundService
 {
@@ -16,23 +15,20 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
     private readonly ILogger<ConsulRegistrationBackgroundService> _logger;
 
     private AgentServiceRegistration? _consulServiceRegistration;
-    private readonly ConsulServiceRegistrationOptions _consulServiceRegistrationOptions = new();
+    private readonly ServiceInfoOptions _consulServiceRegistrationOptions = new();
     private readonly static JsonSerializerOptions _jsonSerializerSettingsDefault = new() { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };
 
     public ConsulRegistrationBackgroundService(IConsulClient consulClient
-                                                , IConfiguration configuration
+                                                , ServiceInfoOptions consulServiceRegistrationOptions
                                                 , ILogger<ConsulRegistrationBackgroundService> logger)
     {
         _consulClient = consulClient;
+        _consulServiceRegistrationOptions = consulServiceRegistrationOptions;
         _logger = logger;
-        
-        var serviceRegistrationConfigSection = configuration.GetSection("ConsulServiceRegistry:ServiceRegistration") 
-                                                    ?? throw new InvalidServiceRegistrationInfoException("The `Service Registry` configurations not found in the key : `ConsulServiceRegistry:ServiceRegistration`");
-        serviceRegistrationConfigSection.Bind(_consulServiceRegistrationOptions);
 
         PrepareServiceRegistrationOptions(_consulServiceRegistrationOptions);
     }
-       
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         try
@@ -74,9 +70,9 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
         _consulServiceRegistration!.ID = GenerateUniqueIdForThisInstanceByNameAndPort();
         _logger.LogDebug("Service instance unique ID generated as : `{ID}`", _consulServiceRegistration!.ID);
 
-        _logger.LogDebug("First, deregister the same service[s] (same instance ID) with ID: `{ID}` from ServiceRegistry if there is any...", _consulServiceRegistration!.ID);
+        _logger.LogInformation("First, deregister the same service[s] (same instance ID) with ID: `{ID}` from ServiceRegistry if there is any...", _consulServiceRegistration!.ID);
         var deregisterPreviousInstancesOfThisServiceResult = await _consulClient.Agent.ServiceDeregister(_consulServiceRegistration.ID, stoppingToken);
-        _logger.LogDebug("Deregistering the same service[s] with `{ID}` from ServiceRegistry result status code: `{result}`", _consulServiceRegistration!.ID, deregisterPreviousInstancesOfThisServiceResult.StatusCode);
+        _logger.LogInformation("Deregistering the same service[s] with `{ID}` from ServiceRegistry result status code: `{result}`", _consulServiceRegistration!.ID, deregisterPreviousInstancesOfThisServiceResult.StatusCode);
         if (deregisterPreviousInstancesOfThisServiceResult.StatusCode != HttpStatusCode.OK)
         {
             _logger.LogWarning("Deregistering the same service[s] with `{ID}` from ServiceRegistry " +

@@ -1,9 +1,9 @@
 ﻿using System.Collections;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Swashbuckle.AspNetCore.SwaggerUI;
 using Yarp.ReverseProxy.Configuration;
+using Yarp.ServiceDiscovery.Abstractions;
 
-namespace AtiyanSeir.B2B.ApiGateway.Swagger;
+namespace Yarp.Swagger;
 
 public class SwaggerEndpointEnumerator : IEnumerable<UrlDescriptor>
 {
@@ -14,25 +14,20 @@ public class SwaggerEndpointEnumerator : IEnumerable<UrlDescriptor>
     public SwaggerEndpointEnumerator(IServiceDiscovery serviceDiscovery, IHttpContextAccessor httpContextAccessor, ILogger logger)
     {
         _serviceDiscovery = serviceDiscovery;
-        this._httpContextAccessor = httpContextAccessor;
-        this._logger = logger;
+        _httpContextAccessor = httpContextAccessor;
+        _logger = logger;
     }
 
     public IEnumerator<UrlDescriptor> GetEnumerator()
     {
-        string serverAddress = GetServerAddress();
-        _logger.LogDebug("Reverse proxy server address is : `{address}`", serverAddress);
+        string currentReverseProxyServerAddress = GetCurrentReverseProxyServerAddress();
+        _logger.LogDebug("Reverse proxy server address is : `{address}`", currentReverseProxyServerAddress);
 
         var routes = _serviceDiscovery?.GetRoutes() ?? new List<RouteConfig>();
         var clusters = _serviceDiscovery?.GetClusters() ?? new List<ClusterConfig>();
-        if (clusters.Count == 0)
-        {
-            _logger.LogWarning("There is no cluster destinations to generate swagger documents!!!");
-        }
-        else
-        {
-            _logger.LogDebug("Enumerating {count} clusters to generating swagger documents...", clusters.Count);
-        }
+        _logger.LogDebug("Enumerating {count} clusters to generating swagger documents...", clusters.Count);
+
+        WarnIfNoClusters(clusters);
 
         foreach (var clusterItem in clusters)
         {
@@ -44,6 +39,8 @@ public class SwaggerEndpointEnumerator : IEnumerable<UrlDescriptor>
             }
 
             var routesOfThisCluster = routes.Where(x => x.ClusterId == clusterItem.ClusterId).ToList();
+
+            // assume there is only one swagger.json for the service
             var swaggerRouteOfThisCluster = routesOfThisCluster.Where(x => x.RouteId.Contains("swagger")).FirstOrDefault();
 
             if (swaggerRouteOfThisCluster is null)
@@ -52,18 +49,31 @@ public class SwaggerEndpointEnumerator : IEnumerable<UrlDescriptor>
                 continue;
             }
 
-            var originalApiSwaggerUrlViaServiceProxy = serverAddress + swaggerRouteOfThisCluster.Match.Path;
-            _logger.LogDebug("Swagger url of original route for the clusterId `{clusterId}` is valid, swagger url is: `{apiSwaggerUrl}`", clusterItem.ClusterId, originalApiSwaggerUrlViaServiceProxy);
+            string swaggerJsonUrlForOriginalServiceViaReverseProxy = MakeSwaggerJsonUrlForOriginalServiceViaReverseProxy(currentReverseProxyServerAddress, swaggerRouteOfThisCluster);
+            _logger.LogInformation("Swagger url of original destination for the clusterId `{clusterId}` is: `{apiSwaggerUrl}`", clusterItem.ClusterId, swaggerJsonUrlForOriginalServiceViaReverseProxy);
 
             yield return new UrlDescriptor
             {
                 Name = clusterItem.ClusterId,
-                Url = originalApiSwaggerUrlViaServiceProxy
+                Url = swaggerJsonUrlForOriginalServiceViaReverseProxy
             };
         }
     }
 
-    private string GetServerAddress()
+    private static string MakeSwaggerJsonUrlForOriginalServiceViaReverseProxy(string reverseProxyServerAddress, RouteConfig swaggerRouteOfThisCluster)
+    {
+        return $"{reverseProxyServerAddress}{swaggerRouteOfThisCluster.Match.Path}";
+    }
+
+    private void WarnIfNoClusters(IReadOnlyList<ClusterConfig> clusters)
+    {
+        if (clusters.Count == 0)
+        {
+            _logger.LogWarning("There is no cluster destinations to generate swagger documents!!!");
+        }
+    }
+
+    private string GetCurrentReverseProxyServerAddress()
     {
         var host = _httpContextAccessor.HttpContext.Request.Host.ToString();
         var serverAddress = $"{_httpContextAccessor.HttpContext.Request.Scheme}://{host}";

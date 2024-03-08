@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Yarp.ServiceDiscovery.Abstractions;
 
 namespace Microsoft.Extensions.DependencyInjection;
 

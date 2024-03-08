@@ -1,17 +1,18 @@
-using Api2;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
+using Api1;
+using Coordinator.HealthChecking;
+using Yarp.ServiceDiscovery.Consul.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddCors();
 builder.Services.AddControllers();
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks().AddCheck<MainHealthCheck>("Sample");
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-ConsulClientOptions consulClientOptions = new();
-builder.Configuration.GetSection("ConsulServiceRegistry:ConsulClient").Bind(consulClientOptions);
-builder.Services.RegisterWithConsulServiceDiscovery(consulClientOptions);
+ConsulServiceRegistryOptions serviceRegistryOptions = new();
+builder.Configuration.GetSection("ConsulServiceRegistry").Bind(serviceRegistryOptions);
+builder.Services.RegisterWithConsulServiceRegistry(serviceRegistryOptions);
 
 var app = builder.Build();
 
@@ -25,6 +26,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
+app.MapHealthChecks("/healthz");
 app.UseSampleEndpoints(builder.Environment);
 
 app.Run();
