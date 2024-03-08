@@ -1,5 +1,5 @@
-﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
-using Microsoft.Extensions.Configuration;
+﻿using Microsoft.Extensions.Configuration;
+using Yarp.ServiceDiscovery.Consul.Workers;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -17,7 +17,7 @@ public static class ReverseProxyExtensions
 
         if (isAutoReloadEnabled == true)
         {
-            builder.Services.AddHostedService<ConsulMonitorBackgroundService>();
+            builder.Services.AddHostedService<AutoDiscoveryBackgroundService>();
         }
 
         return builder;

@@ -1,12 +1,11 @@
-﻿namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
+﻿namespace Yarp.ServiceDiscovery.Consul.Options;
 
-public class ConsulServiceRegistrationOptions
+public class ServiceInfoOptions
 {
     public string? Name { get; set; }
     public string? Address { get; set; }
-    public string? Schema { get; set; }
+    public string? Scheme { get; set; }
     public int Port { get; set; }
-
 
     public bool YarpIsEnabled { get; internal set; }
     public string? YarpRouteMatchPath { get; internal set; }

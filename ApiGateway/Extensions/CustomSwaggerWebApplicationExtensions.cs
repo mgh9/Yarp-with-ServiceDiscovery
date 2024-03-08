@@ -1,5 +1,5 @@
-﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
-using AtiyanSeir.B2B.ApiGateway.Swagger;
+﻿using Yarp.ServiceDiscovery.Abstractions;
+using Yarp.Swagger;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
@@ -25,7 +25,6 @@ internal static class CustomSwaggerWebApplicationExtensions
         app.UseSwaggerUI(options =>
         {
             options.DocumentTitle = "AtiyanSeir B2B API Gateway";
-
             var serviceDiscovery = app.Services.GetRequiredService<IServiceDiscovery>();
             var httpContext = app.Services.GetRequiredService<IHttpContextAccessor>();
             options.ConfigObject.Urls = new SwaggerEndpointEnumerator(serviceDiscovery, httpContext, app.Logger);

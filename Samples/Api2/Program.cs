@@ -1,5 +1,5 @@
 using Api2;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
+using Yarp.ServiceDiscovery.Consul.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,9 +9,9 @@ builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-ConsulClientOptions consulClientOptions = new();
-builder.Configuration.GetSection("ConsulServiceRegistry:ConsulClient").Bind(consulClientOptions);
-builder.Services.RegisterWithConsulServiceDiscovery(consulClientOptions);
+ConsulServiceRegistryOptions serviceRegistryOptions = new();
+builder.Configuration.GetSection("ConsulServiceRegistry").Bind(serviceRegistryOptions);
+builder.Services.RegisterWithConsulServiceRegistry(serviceRegistryOptions);
 
 var app = builder.Build();
 

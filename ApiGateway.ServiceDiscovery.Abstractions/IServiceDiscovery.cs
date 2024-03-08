@@ -1,6 +1,6 @@
 ﻿using Yarp.ReverseProxy.Configuration;
 
-namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
+namespace Yarp.ServiceDiscovery.Abstractions;
 
 public interface IServiceDiscovery
 {

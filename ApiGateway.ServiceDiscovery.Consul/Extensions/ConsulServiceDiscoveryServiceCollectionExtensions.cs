@@ -1,8 +1,8 @@
 ﻿using System.Net.Http.Headers;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
 using Consul;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Yarp.ServiceDiscovery.Consul.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 

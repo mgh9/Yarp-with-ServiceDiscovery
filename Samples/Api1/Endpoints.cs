@@ -1,4 +1,4 @@
-﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
+﻿using Yarp.ServiceDiscovery.Abstractions;
 
 namespace Api1;
 

@@ -1,8 +1,7 @@
-﻿namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options
+﻿namespace Yarp.ServiceDiscovery.Consul.Options;
+
+public class ConsulClientOptions
 {
-    public class ConsulClientOptions
-    {
-        public string Host { get; set; }
-        public string? Datacenter { get; set; }
-    }
+    public string Host { get; set; }
+    public string? Datacenter { get; set; }
 }

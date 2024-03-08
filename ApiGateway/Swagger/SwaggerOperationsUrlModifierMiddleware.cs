@@ -1,7 +1,7 @@
-﻿using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
-using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json.Linq;
+using Yarp.ServiceDiscovery.Abstractions;
 
-namespace AtiyanSeir.B2B.ApiGateway.Swagger;
+namespace Yarp.Swagger;
 
 public class SwaggerOperationsUrlModifierMiddleware
 {
@@ -19,13 +19,15 @@ public class SwaggerOperationsUrlModifierMiddleware
         return path.ToUriComponent().EndsWith("swagger.json", StringComparison.OrdinalIgnoreCase);
     }
 
-    public async Task Invoke(HttpContext context)        
+    public async Task Invoke(HttpContext context)
     {
         if (!IsSwaggerUi(context.Request.Path))
         {
             await _next(context);
             return;
         }
+
+        //SetAllowLoadingInsecureContentInSwaggerHtmlIndex(context);
 
         var originBody = context.Response.Body;
 
@@ -42,13 +44,19 @@ public class SwaggerOperationsUrlModifierMiddleware
             memStream.Position = 0;
             var responseBody = new StreamReader(memStream).ReadToEnd();
 
-            responseBody = ChangeOperationsBaseUrlToPassFromReverseProxyUrl(context, routes, clusters, responseBody);
+            responseBody = ChangeOperationsBaseUrlToPassFromReverseProxyUrl(context, routes, responseBody);
             await WriteModifiedResponseToOriginalBodyStreamAsync(originBody, responseBody).ConfigureAwait(false);
         }
         finally
         {
             context.Response.Body = originBody;
         }
+    }
+
+    private static void SetAllowLoadingInsecureContentInSwaggerHtmlIndex(HttpContext context)
+    {
+        // Set Content Security Policy header to allow loading insecure content
+        context.Response.Headers.ContentSecurityPolicy = "upgrade-insecure-requests";
     }
 
     private static async Task WriteModifiedResponseToOriginalBodyStreamAsync(Stream originBody, string responseBody)
@@ -78,7 +86,7 @@ public class SwaggerOperationsUrlModifierMiddleware
     /// After this method executed, it becomes this:
     /// "paths": { "/MySimpleApi/GetOrderData": ... }
     /// </example>
-    private static string ChangeOperationsBaseUrlToPassFromReverseProxyUrl(HttpContext context, IReadOnlyList<Yarp.ReverseProxy.Configuration.RouteConfig> routes, IReadOnlyList<Yarp.ReverseProxy.Configuration.ClusterConfig> clusters, string responseBody)
+    private static string ChangeOperationsBaseUrlToPassFromReverseProxyUrl(HttpContext context, IReadOnlyList<ReverseProxy.Configuration.RouteConfig> routes, string responseBody)
     {
         // https://stackoverflow.com/questions/44508028/modify-middleware-response
         var arrayContainsServiceName = context.Request.Path.Value.Split('/');
@@ -105,7 +113,7 @@ public class SwaggerOperationsUrlModifierMiddleware
         }
 
         jObject["paths"] = newPaths;
-        
+
         string modifiedJson = jObject.ToString();
         responseBody = modifiedJson;
 

@@ -1,11 +1,11 @@
 ﻿using System.Net;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions.Exceptions;
-using AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Options;
 using Consul;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Yarp.ServiceDiscovery.Abstractions.Exceptions;
+using Yarp.ServiceDiscovery.Consul.Options;
 
-namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Consul.Workers;
+namespace Yarp.ServiceDiscovery.Consul.Workers;
 
 internal partial class ConsulRegistrationBackgroundService : BackgroundService
 {
@@ -66,7 +66,7 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
                 Name = _consulServiceRegistrationOptions.Name,
                 Port = _consulServiceRegistrationOptions.Port,
                 Tags = _consulServiceRegistrationOptions.Tags,
-                Meta= _consulServiceRegistrationOptions.Meta
+                Meta = _consulServiceRegistrationOptions.Meta
             };
         }
         catch (Exception ex)
@@ -100,7 +100,7 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
             throw new InvalidServiceRegistrationInfoException("Cannot fetch hostname from HostEntry of the machine");
         }
 
-        var serviceAddress = _consulServiceRegistrationOptions.Schema ?? "http";
+        var serviceAddress = _consulServiceRegistrationOptions.Scheme ?? "http";
         serviceAddress += $"://{hostnameValue}";
 
         return serviceAddress;
@@ -110,19 +110,21 @@ internal partial class ConsulRegistrationBackgroundService : BackgroundService
     {
         _logger.LogDebug("Trying to fetch service address from appSettings in `Address` key...");
 
-        serviceAddress = _consulServiceRegistrationOptions.Address;        
+        serviceAddress = _consulServiceRegistrationOptions.Address;
         if (string.IsNullOrWhiteSpace(_consulServiceRegistrationOptions.Address) == false)
         {
-            serviceAddress = _consulServiceRegistrationOptions.Schema ?? "http";
+            var scheme = _consulServiceRegistrationOptions.Scheme ?? "http";
+            serviceAddress = $"{scheme}://{_consulServiceRegistrationOptions.Address}";
+
             return true;
         }
 
         return false;
     }
 
-    private static void PrepareServiceRegistrationOptions(ConsulServiceRegistrationOptions options)
+    private static void PrepareServiceRegistrationOptions(ServiceInfoOptions options)
     {
-        options.Schema ??= "http";
+        options.Scheme ??= "http";
 
         // health check endpoint
         options.ServiceHealthCheckEndpoint = options.Meta?.GetValueOrDefault("service_health_check_endpoint");

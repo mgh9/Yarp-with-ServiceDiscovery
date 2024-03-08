@@ -1,8 +1,8 @@
-﻿namespace AtiyanSeir.B2B.ApiGateway.Swagger;
+﻿namespace Yarp.Swagger;
 
-public static class ModifySwaggerOperationsUrlMiddlewareExtensions
+internal static class ModifySwaggerOperationsUrlMiddlewareExtensions
 {
-    public static IApplicationBuilder UseModifySwaggerOperationsUrlMiddleware(this IApplicationBuilder builder)
+    internal static IApplicationBuilder UseModifySwaggerOperationsUrlMiddleware(this IApplicationBuilder builder)
     {
         return builder.UseMiddleware<SwaggerOperationsUrlModifierMiddleware>();
     }

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Http;
 
-namespace AtiyanSeir.B2B.ApiGateway.ServiceDiscovery.Abstractions;
+namespace Yarp.ServiceDiscovery.Abstractions;
 
 /// <summary>
 /// Sets a custom response header with the name of the originating host.
