@@ -5,6 +5,7 @@ The architecture is designed for microservices-based systems that require runtim
 
 
 **Highlights**
+
 YARP (Yet Another Reverse Proxy) used as a reverse-proxy/API gateway.
 Service discovery integration: resolves route destinations dynamically.
 Demonstrates code-first configuration for microservice registration and proxying.
@@ -12,6 +13,7 @@ Self-contained Docker + .NET 8 solution — no additional tools required.
 
 
 **Features**
+
 Reverse proxy with YARP for routing incoming traffic to backend services.
 Service discovery integration to resolve destinations at runtime.
 Code-first configuration for easy customization and minimal setup.
@@ -20,15 +22,19 @@ Minimal boilerplate — focused on showcasing integration and extensibility.
 
 
 **How to Run**
+
 **Prerequisites**
+
 .NET 8 SDK
 Docker (for running services and gateway)
 Consul (optional, if enabled for discovery)
 
 **Running with Docker Compose**
+
 A docker-compose.yml file can be added to orchestrate Gateway + Service + Consul containers. You can extend this project with that setup.
 
 **Manual Run**
+
 Run sample backend services:
 dotnet run --project ./Services/SampleService1
 dotnet run --project ./Services/SampleService2
@@ -38,6 +44,7 @@ dotnet run --project ./Gateway
 
 
 **How It Works**
+
 At startup, the Gateway loads registered services via IDiscoveryProvider.
 YARP routes are configured programmatically based on these services.
 Incoming HTTP requests are reverse proxied to backend services resolved via the discovery mechanism.
@@ -45,5 +52,6 @@ You can switch between static, file-based, or Consul-based providers with minima
 
 
 **Notes**
+
 This project avoids static appsettings.json or yarp.json files to promote runtime flexibility.
 For production-grade scenarios, consider adding health checks, retries, circuit breakers, and proper observability.
