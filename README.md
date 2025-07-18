@@ -18,25 +18,6 @@ Code-first configuration for easy customization and minimal setup.
 Dockerized environment using .NET 8 — simple to run and extend.
 Minimal boilerplate — focused on showcasing integration and extensibility.
 
-**Project Structure**
-/Gateway
-  └── Program.cs          // YARP setup and service discovery
-  └── yarp.json           // Optional YARP configuration (not required in this code-first setup)
-
-  └── ServiceDiscovery/
-      └── ConsulServiceDiscoveryProvider.cs
-      └── IDiscoveryProvider.cs
-      └── StaticServiceDiscoveryProvider.cs (example fallback)
-
-  └── Controllers/        // Optional: for gateway health checks
-  └── Dockerfile
-
-/Services
-  └── SampleService1/
-  └── SampleService2/
-  ...
-
-
 
 **How to Run**
 **Prerequisites**
